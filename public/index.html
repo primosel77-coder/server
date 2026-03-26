@@ -2,261 +2,68 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AllWhite Messenger</title>
+    <title>AllWhite V3</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root { --red: #8b0000; --bg: #0a0a0a; --panel: #141414; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #fff; height: 100vh; overflow: hidden; }
-        
-        /* Авторизация */
-        #auth-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        body { margin: 0; font-family: sans-serif; background: var(--bg); color: #fff; display: flex; align-items: center; justify-content: center; height: 100vh; }
         .auth-box { background: var(--panel); padding: 30px; border-radius: 12px; width: 300px; text-align: center; border: 1px solid #222; }
-        input { width: 90%; padding: 10px; margin: 10px 0; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 5px; outline: none; }
+        input { width: 90%; padding: 10px; margin: 10px 0; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 5px; }
         button { width: 100%; padding: 10px; background: var(--red); border: none; color: #fff; cursor: pointer; border-radius: 5px; font-weight: bold; }
-        button:hover { opacity: 0.8; }
-        
-        /* Главный экран */
-        .app-container { display: flex; height: 100vh; }
-        .sidebar { width: 300px; background: var(--panel); border-right: 1px solid #222; display: flex; flex-direction: column; }
-        .chat-area { flex: 1; display: flex; flex-direction: column; }
-        
-        /* Профиль в сайдбаре */
-        .my-profile { padding: 15px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 10px; cursor: pointer; }
-        .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #333; border: 1px solid #444; }
-        
-        /* Список юзеров */
-        #user-list { flex: 1; overflow-y: auto; }
-        .user-item { padding: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; border-bottom: 1px solid #1a1a1a; }
-        .user-item:hover { background: #1a1a1a; }
-        .online-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-        
-        /* Чат */
-        #messages { flex: 1; overflow-y: auto; padding: 20px; list-style: none; margin: 0; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 70%; padding: 10px 15px; border-radius: 15px; font-size: 14px; position: relative; word-wrap: break-word; }
-        .sent { align-self: flex-end; background: var(--red); border-bottom-right-radius: 2px; }
-        .received { align-self: flex-start; background: #222; border-bottom-left-radius: 2px; }
-        
-        .input-bar { padding: 15px; background: var(--panel); display: flex; gap: 10px; align-items: center; border-top: 1px solid #222; }
-        .input-bar input { flex: 1; margin: 0; }
-        .input-bar button { width: 45px; height: 40px; padding: 0; }
-
-        /* Модалка */
-        #profile-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 2000; }
-        .modal-content { background: var(--panel); padding: 25px; border-radius: 15px; width: 320px; border: 1px solid var(--red); }
-        .chat-img { max-width: 250px; border-radius: 10px; margin: 5px 0; cursor: pointer; }
+        #chat-screen { display: none; width: 100%; height: 100vh; flex-direction: column; }
     </style>
 </head>
 <body>
 
     <div id="auth-screen">
         <div class="auth-box">
-            <h2 style="color:var(--red); margin-bottom: 20px;">AllWhite</h2>
-            <input type="text" id="auth-n" placeholder="Никнейм">
+            <h2 style="color:var(--red)">AllWhite</h2>
+            <input type="text" id="auth-n" placeholder="Логин">
             <input type="password" id="auth-p" placeholder="Пароль">
-            <button onclick="login()">Войти</button>
-            <p onclick="register()" style="font-size:12px; cursor:pointer; margin-top:15px; color:#666">Создать аккаунт</p>
+            <button id="loginBtn">Войти</button>
+            <button id="regBtn" style="background:#333; margin-top:5px">Регистрация</button>
         </div>
     </div>
 
-    <div class="app-container">
-        <div class="sidebar">
-            <div class="my-profile" onclick="openProfile()">
-                <img id="my-av" src="" class="avatar">
-                <div style="flex:1; overflow: hidden;">
-                    <b id="my-n" style="display: block; text-overflow: ellipsis; white-space: nowrap;">Загрузка...</b>
-                    <small id="my-bio" style="color:#666; display: block; text-overflow: ellipsis; white-space: nowrap;">Статус...</small>
-                </div>
-            </div>
-            <div style="padding:10px;"><input type="text" id="srch" placeholder="Поиск..." oninput="renderUsers()" style="width: calc(100% - 22px);"></div>
-            <div id="user-list"></div>
+    <div id="chat-screen">
+        <div style="padding:20px; border-bottom:1px solid #222">
+            Вы вошли как: <b id="my-name"></b>
         </div>
-
-        <div class="chat-area">
-            <div style="padding:15px; border-bottom:1px solid #222; font-weight:bold; background: var(--panel)" id="chat-h">Выберите, кому написать</div>
-            <ul id="messages"></ul>
-            <div class="input-bar">
-                <label style="cursor:pointer; font-size: 20px;">📎<input type="file" id="f-i" hidden onchange="handleFile(this)"></label>
-                <input type="text" id="m-i" placeholder="Напишите сообщение...">
-                <button onclick="sendMsg()">></button>
-            </div>
-        </div>
-    </div>
-
-    <div id="profile-modal">
-        <div class="modal-content">
-            <h3 style="margin-top:0">Мой профиль</h3>
-            <center>
-                <img id="edit-av-v" src="" style="width:80px; height:80px; border-radius:50%; background:#000; margin-bottom:10px; cursor:pointer; object-fit: cover; border: 2px solid var(--red);" onclick="document.getElementById('edit-av-i').click()">
-                <input type="file" id="edit-av-i" hidden onchange="previewAv(this)">
-                <div style="font-size: 10px; color: #555; margin-bottom: 10px;">Нажми на фото, чтобы изменить</div>
-            </center>
-            <input type="text" id="edit-nick" placeholder="Изменить ник">
-            <input type="text" id="edit-bio" placeholder="Изменить статус">
-            <div style="display:flex; gap:10px; margin-top:15px">
-                <button onclick="saveProfile()">ОК</button>
-                <button onclick="document.getElementById('profile-modal').style.display='none'" style="background:#333">Отмена</button>
-            </div>
+        <div id="messages" style="flex:1; overflow-y:auto; padding:20px"></div>
+        <div style="padding:20px; display:flex; gap:10px">
+            <input type="text" id="msg-input" placeholder="Сообщение...">
+            <button id="sendBtn" style="width:80px">></button>
         </div>
     </div>
 
     <script>
+        // Принудительно подключаемся к Socket.io
         const socket = io();
-        let me = "", selectedUser = "", chatHistory = [], allUsers = [], myData = {};
 
-        // 1. АВТО-ВХОД
-        window.onload = () => {
-            const sn = localStorage.getItem('aw_n');
-            const sp = localStorage.getItem('aw_p');
-            if(sn && sp) {
-                console.log("Автоматический вход...");
-                socket.emit('login', { username: sn, password: sp });
-            }
+        // Функции вынесены отдельно, чтобы кнопки их точно видели
+        document.getElementById('loginBtn').onclick = function() {
+            const u = document.getElementById('auth-n').value;
+            const p = document.getElementById('auth-p').value;
+            if(!u || !p) return alert("Заполни поля!");
+            console.log("Жму вход:", u);
+            socket.emit('login', { username: u, password: p });
         };
 
-        // 2. ФУНКЦИИ КНОПОК
-        function login() {
+        document.getElementById('regBtn').onclick = function() {
             const u = document.getElementById('auth-n').value;
             const p = document.getElementById('auth-p').value;
-            if(!u || !p) return alert("Заполни данные!");
-            localStorage.setItem('aw_n', u);
-            localStorage.setItem('aw_p', p);
-            socket.emit('login', { username: u, password: p });
-        }
-
-        function register() {
-            const u = document.getElementById('auth-n').value;
-            const p = document.getElementById('auth-p').value;
-            if(!u || !p) return alert("Заполни данные для регистрации!");
+            if(!u || !p) return alert("Заполни поля!");
             socket.emit('register', { username: u, password: p });
-        }
+        };
 
-        // 3. ОТВЕТЫ СЕРВЕРА
-        socket.on('login_success', data => {
-            myData = data; me = data.username;
+        socket.on('login_success', (data) => {
             document.getElementById('auth-screen').style.display = 'none';
-            
-            // Обновление UI
-            document.getElementById('my-n').innerText = me;
-            document.getElementById('my-bio').innerText = data.bio || "Status: Online";
-            document.getElementById('my-av').src = data.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(me)}&background=random&color=fff`;
-            
-            chatHistory = data.history; 
-            allUsers = data.allUsers; 
-            renderUsers();
-            if(selectedUser) renderMessages();
+            document.getElementById('chat-screen').style.display = 'flex';
+            document.getElementById('my-name').innerText = data.username;
         });
 
-        socket.on('register_success', d => alert("Аккаунт создан! Теперь жми 'Войти'"));
-        socket.on('auth_error', e => alert("Ошибка: " + e));
-
-        // 4. ПРОФИЛЬ
-        function openProfile() {
-            document.getElementById('profile-modal').style.display = 'flex';
-            document.getElementById('edit-nick').value = me;
-            document.getElementById('edit-bio').value = myData.bio || "";
-            document.getElementById('edit-av-v').src = myData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(me)}`;
-        }
-
-        function previewAv(input) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                compress(e.target.result, 200, (res) => {
-                    myData.tempAv = res;
-                    document.getElementById('edit-av-v').src = res;
-                });
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-
-        function saveProfile() {
-            const n = document.getElementById('edit-nick').value;
-            const b = document.getElementById('edit-bio').value;
-            socket.emit('update_profile', { newNick: n, newBio: b, newAvatar: myData.tempAv });
-            localStorage.setItem('aw_n', n); 
-            document.getElementById('profile-modal').style.display = 'none';
-        }
-
-        // 5. ЛОГИКА ЧАТА
-        function renderUsers() {
-            const list = document.getElementById('user-list');
-            const s = document.getElementById('srch').value.toLowerCase();
-            list.innerHTML = "";
-            allUsers.filter(u => u.name !== me && u.name.toLowerCase().includes(s)).forEach(u => {
-                const d = document.createElement('div');
-                d.className = "user-item";
-                if(selectedUser === u.name) d.style.background = "#1a1a1a";
-                d.innerHTML = `
-                    <img src="${u.avatar}" class="avatar">
-                    <div style="flex:1; overflow:hidden">
-                        <b style="color:${u.name.includes('[ADM]') ? '#00ccff' : '#fff'}">${u.name}</b> 
-                        <span class="online-dot" style="background:${u.online?'#2ecc71':'#333'}"></span><br>
-                        <small style="color:#555; white-space:nowrap">${u.bio}</small>
-                    </div>`;
-                d.onclick = () => { selectedUser = u.name; document.getElementById('chat-h').innerText = "@" + u.name; renderUsers(); renderMessages(); };
-                list.appendChild(d);
-            });
-        }
-
-        function renderMessages() {
-            const box = document.getElementById('messages'); box.innerHTML = "";
-            chatHistory.filter(m => (m.from === me && m.to === selectedUser) || (m.from === selectedUser && m.to === me))
-            .forEach(m => {
-                const li = document.createElement('li');
-                li.className = `msg ${m.from === me ? 'sent' : 'received'}`;
-                li.ondblclick = () => { if(m.from === me && confirm("Удалить сообщение?")) socket.emit('delete_message', m.id); };
-                
-                let html = m.text ? `<div>${m.text}</div>` : "";
-                if(m.file) {
-                    if(m.fileType.startsWith('image/')) html += `<img src="${m.file}" class="chat-img" onclick="window.open(this.src)">`;
-                    else html += `<a href="${m.file}" download="${m.fileName}" style="color:#fff; font-size:11px; display:block; margin-top:5px">📁 ${m.fileName}</a>`;
-                }
-                li.innerHTML = html + `<div style="font-size:9px; opacity:0.4; text-align:right; margin-top:4px">${m.time}</div>`;
-                box.appendChild(li);
-            });
-            box.scrollTo(0, box.scrollHeight);
-        }
-
-        function sendMsg() {
-            const i = document.getElementById('m-i');
-            if(i.value.trim() && selectedUser) { 
-                socket.emit('private_message', { to: selectedUser, text: i.value }); 
-                i.value = ""; 
-            }
-        }
-
-        function compress(base64, width, cb) {
-            const img = new Image(); img.src = base64;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const scale = width / img.width;
-                canvas.width = width; canvas.height = img.height * scale;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                cb(canvas.toDataURL('image/jpeg', 0.7));
-            };
-        }
-
-        function handleFile(input) {
-            if(!selectedUser) return alert("Выбери чат!");
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const isImg = input.files[0].type.startsWith('image/');
-                if(isImg) {
-                    compress(e.target.result, 800, (res) => {
-                        socket.emit('private_message', { to: selectedUser, file: res, fileName: input.files[0].name, fileType: input.files[0].type });
-                    });
-                } else {
-                    socket.emit('private_message', { to: selectedUser, file: e.target.result, fileName: input.files[0].name, fileType: input.files[0].type });
-                }
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-
-        socket.on('private_message', m => { chatHistory.push(m); if(m.from === selectedUser || m.to === selectedUser) renderMessages(); });
-        socket.on('message_deleted', id => { chatHistory = chatHistory.filter(m => m.id !== id); renderMessages(); });
-        socket.on('refresh_user_list', list => { allUsers = list; renderUsers(); });
-        document.getElementById('m-i').onkeypress = (e) => { if(e.key === 'Enter') sendMsg(); };
+        socket.on('auth_error', (err) => alert(err));
+        socket.on('register_success', () => alert("Готово! Теперь жми Войти"));
     </script>
 </body>
 </html>
