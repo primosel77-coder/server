@@ -2,15 +2,15 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>AllWhite V3</title>
+    <title>AllWhite V3 - Render Edition</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root { --red: #8b0000; --bg: #0a0a0a; --panel: #141414; }
         body { margin: 0; font-family: sans-serif; background: var(--bg); color: #fff; display: flex; align-items: center; justify-content: center; height: 100vh; }
-        .auth-box { background: var(--panel); padding: 30px; border-radius: 12px; width: 300px; text-align: center; border: 1px solid #222; }
-        input { width: 90%; padding: 10px; margin: 10px 0; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 5px; }
-        button { width: 100%; padding: 10px; background: var(--red); border: none; color: #fff; cursor: pointer; border-radius: 5px; font-weight: bold; }
-        #chat-screen { display: none; width: 100%; height: 100vh; flex-direction: column; }
+        .auth-box { background: var(--panel); padding: 30px; border-radius: 12px; width: 300px; text-align: center; border: 1px solid #222; box-shadow: 0 0 20px rgba(139,0,0,0.2); }
+        input { width: 90%; padding: 12px; margin: 10px 0; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 5px; outline: none; }
+        button { width: 100%; padding: 12px; background: var(--red); border: none; color: #fff; cursor: pointer; border-radius: 5px; font-weight: bold; margin-top: 10px; }
+        #chat-screen { display: none; width: 100%; height: 100vh; flex-direction: column; background: var(--bg); }
     </style>
 </head>
 <body>
@@ -21,39 +21,40 @@
             <input type="text" id="auth-n" placeholder="Логин">
             <input type="password" id="auth-p" placeholder="Пароль">
             <button id="loginBtn">Войти</button>
-            <button id="regBtn" style="background:#333; margin-top:5px">Регистрация</button>
+            <button id="regBtn" style="background:#222">Регистрация</button>
         </div>
     </div>
 
     <div id="chat-screen">
-        <div style="padding:20px; border-bottom:1px solid #222">
-            Вы вошли как: <b id="my-name"></b>
+        <div style="padding:20px; border-bottom:1px solid #222; background: var(--panel)">
+            Вы в сети как: <b id="my-name" style="color:var(--red)"></b>
         </div>
-        <div id="messages" style="flex:1; overflow-y:auto; padding:20px"></div>
-        <div style="padding:20px; display:flex; gap:10px">
-            <input type="text" id="msg-input" placeholder="Сообщение...">
-            <button id="sendBtn" style="width:80px">></button>
+        <div id="messages" style="flex:1; padding:20px; overflow-y:auto"></div>
+        <div style="padding:20px; background: var(--panel); display:flex; gap:10px">
+            <input type="text" id="msg-input" placeholder="Сообщение..." style="margin:0">
+            <button id="sendBtn" style="width:100px; margin:0">Отправить</button>
         </div>
     </div>
 
     <script>
-        // Принудительно подключаемся к Socket.io
-        const socket = io();
+        // Подключаемся с явным указанием транспортов для стабильности на Render
+        const socket = io(window.location.origin, {
+            transports: ['websocket', 'polling'],
+            reconnectionAttempts: 5
+        });
 
-        // Функции вынесены отдельно, чтобы кнопки их точно видели
-        document.getElementById('loginBtn').onclick = function() {
+        document.getElementById('loginBtn').onclick = () => {
             const u = document.getElementById('auth-n').value;
             const p = document.getElementById('auth-p').value;
-            if(!u || !p) return alert("Заполни поля!");
-            console.log("Жму вход:", u);
-            socket.emit('login', { username: u, password: p });
+            if(u && p) socket.emit('login', { username: u, password: p });
+            else alert("Заполни поля!");
         };
 
-        document.getElementById('regBtn').onclick = function() {
+        document.getElementById('regBtn').onclick = () => {
             const u = document.getElementById('auth-n').value;
             const p = document.getElementById('auth-p').value;
-            if(!u || !p) return alert("Заполни поля!");
-            socket.emit('register', { username: u, password: p });
+            if(u && p) socket.emit('register', { username: u, password: p });
+            else alert("Заполни поля!");
         };
 
         socket.on('login_success', (data) => {
@@ -62,8 +63,11 @@
             document.getElementById('my-name').innerText = data.username;
         });
 
-        socket.on('auth_error', (err) => alert(err));
-        socket.on('register_success', () => alert("Готово! Теперь жми Войти"));
+        socket.on('register_success', () => alert("Аккаунт создан! Теперь жми Войти."));
+        socket.on('auth_error', (msg) => alert(msg));
+        
+        // Логируем ошибки в консоль (F12), чтобы видеть, если Render сбросит связь
+        socket.on('connect_error', (err) => console.log("Ошибка связи:", err.message));
     </script>
 </body>
 </html>
