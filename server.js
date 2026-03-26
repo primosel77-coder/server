@@ -1,46 +1,56 @@
 const express = require('express');
 const app = express();
 const http = require('http').Server(app);
-const io = require('socket.io')(http);
+const io = require('socket.io')(http, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  },
+  transports: ['websocket', 'polling'] // Помогает избежать ERR_CONNECTION_RESET
+});
 const path = require('path');
 
-// Указываем серверу, где искать файлы (index.html должен быть в папке public)
 app.use(express.static(path.join(__dirname, 'public')));
 
 let usersDB = {}; 
-let messagesHistory = []; 
-let onlineUsers = {}; 
+let onlineUsers = {};
 
 io.on('connection', (socket) => {
-    console.log('Новое подключение');
+    console.log('User connected:', socket.id);
+
+    socket.on('register', (data) => {
+        if (!data.username || !data.password) return;
+        if (usersDB[data.username]) {
+            return socket.emit('auth_error', 'Этот ник уже занят!');
+        }
+        usersDB[data.username] = { password: data.password };
+        console.log('Registered:', data.username);
+        socket.emit('register_success');
+    });
 
     socket.on('login', (data) => {
         const user = usersDB[data.username];
         if (user && user.password === data.password) {
             onlineUsers[data.username] = socket.id;
             socket.emit('login_success', { 
-                username: data.username, 
-                allUsers: Object.keys(usersDB).map(name => ({ name, online: !!onlineUsers[name] })),
-                history: messagesHistory.filter(m => m.from === data.username || m.to === data.username)
+                username: data.username,
+                allUsers: Object.keys(usersDB).map(name => ({ name, online: !!onlineUsers[name] }))
             });
-        }
-    });
-
-    socket.on('private_message', (data) => {
-        const sender = Object.keys(onlineUsers).find(k => onlineUsers[k] === socket.id);
-        if (sender) {
-            const msg = { ...data, from: sender, time: new Date().toLocaleTimeString() };
-            messagesHistory.push(msg);
-            if (onlineUsers[data.to]) io.to(onlineUsers[data.to]).emit('private_message', msg);
-            socket.emit('private_message', msg);
+            console.log('Login success:', data.username);
+        } else {
+            socket.emit('auth_error', 'Неверный логин или пароль!');
         }
     });
 
     socket.on('disconnect', () => {
-        const user = Object.keys(onlineUsers).find(k => onlineUsers[k] === socket.id);
-        if (user) delete onlineUsers[user];
+        for (let user in onlineUsers) {
+            if (onlineUsers[user] === socket.id) {
+                delete onlineUsers[user];
+                break;
+            }
+        }
     });
 });
 
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => console.log('Server running on port ' + PORT));
+http.listen(PORT, () => console.log('AllWhite Live on port ' + PORT));
