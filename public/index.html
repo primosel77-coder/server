@@ -1,79 +1,78 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AllWhite V6.1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>AllWhite V7</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        :root { --red: #ff4d4d; --dark-red: #8b0000; --bg: #050505; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; height: 100vh; display: flex; overflow: hidden; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #050505; color: #fff; font-family: sans-serif; height: 100vh; display: flex; overflow: hidden; }
         
-        /* Сферы */
-        .sphere { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.15; z-index: 0; pointer-events: none; }
-        .s1 { width: 400px; height: 400px; background: var(--dark-red); top: -10%; left: -10%; }
-        .s2 { width: 500px; height: 500px; background: #ff2a2a; bottom: -10%; right: -10%; }
+        /* Сферы фона */
+        .bg-glow { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.1; z-index: 0; pointer-events: none; }
+        .s1 { width: 300px; height: 300px; background: red; top: -50px; left: -50px; }
+        .s2 { width: 400px; height: 400px; background: #500; bottom: -50px; right: -50px; }
 
         /* Авторизация */
-        #auth-screen { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .auth-box { background: rgba(15,15,15,0.8); backdrop-filter: blur(20px); padding: 40px; border-radius: 25px; width: 340px; text-align: center; border: 1px solid #222; }
-        
-        /* Основной интерфейс */
-        .sidebar { width: 300px; background: #0a0a0a; border-right: 1px solid #1a1a1a; display: flex; flex-direction: column; z-index: 10; flex-shrink: 0; }
+        #auth-screen { position: fixed; inset: 0; background: #000; z-index: 999; display: flex; align-items: center; justify-content: center; }
+        .auth-box { background: #111; padding: 30px; border-radius: 20px; width: 320px; text-align: center; border: 1px solid #222; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; }
+        .btn { background: #8b0000; color: #fff; border: none; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+        /* Сетка приложения */
+        .sidebar { width: 280px; border-right: 1px solid #1a1a1a; display: flex; flex-direction: column; background: #080808; z-index: 10; flex-shrink: 0; }
         .chat-area { flex: 1; display: flex; flex-direction: column; background: #050505; z-index: 5; position: relative; }
-        
-        .header { padding: 15px; border-bottom: 1px solid #1a1a1a; display: flex; align-items: center; gap: 10px; background: rgba(10,10,10,0.5); }
+
+        .header { height: 60px; padding: 0 15px; border-bottom: 1px solid #1a1a1a; display: flex; align-items: center; gap: 10px; background: #0a0a0a; }
         #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
         
-        .msg { padding: 10px 15px; border-radius: 15px; max-width: 80%; font-size: 14px; line-height: 1.4; }
-        .sent { background: var(--dark-red); align-self: flex-end; }
+        .msg { padding: 10px 15px; border-radius: 15px; max-width: 85%; font-size: 14px; word-wrap: break-word; }
+        .sent { background: #8b0000; align-self: flex-end; }
         .received { background: #1a1a1a; align-self: flex-start; }
-        
-        .input-box { padding: 15px; display: flex; gap: 10px; background: #0a0a0a; border-top: 1px solid #1a1a1a; }
-        input { background: #000; border: 1px solid #222; color: #fff; padding: 10px; border-radius: 8px; outline: none; flex: 1; }
-        button { background: var(--dark-red); border: none; color: #fff; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
 
+        .input-box { padding: 15px; display: flex; gap: 10px; background: #080808; border-top: 1px solid #1a1a1a; }
+        
         @media (max-width: 768px) {
-            .sidebar { position: absolute; width: 100%; height: 100%; transition: 0.3s; }
+            .sidebar { position: absolute; inset: 0; width: 100%; z-index: 100; transition: 0.3s; }
             .sidebar.hidden { transform: translateX(-100%); }
         }
     </style>
 </head>
 <body>
-    <div class="sphere s1"></div>
-    <div class="sphere s2"></div>
+    <div class="bg-glow s1"></div><div class="bg-glow s2"></div>
 
     <div id="auth-screen">
         <div class="auth-box">
-            <h1 style="-webkit-text-stroke: 1px #fff; color: transparent; font-size: 50px; margin-bottom: 20px;">AW</h1>
-            <input type="text" id="u" placeholder="Логин"><br>
-            <input type="password" id="p" placeholder="Пароль"><br><br>
-            <button onclick="login()" style="width: 100%;">Войти</button>
-            <button onclick="reg()" style="width: 100%; background: none; margin-top: 10px;">Регистрация</button>
+            <h1 style="color:red; margin:0 0 20px 0">AllWhite</h1>
+            <input id="u" placeholder="Логин">
+            <input id="p" type="password" placeholder="Пароль">
+            <button class="btn" onclick="login()">Войти</button>
+            <button class="btn" onclick="reg()" style="background:none; margin-top:5px">Регистрация</button>
         </div>
     </div>
 
     <div class="sidebar" id="sb">
-        <div class="header" onclick="showProf()" style="cursor:pointer">
-            <img id="my-av" src="" style="width:40px; height:40px; border-radius:8px; object-fit:cover">
-            <div><b id="my-n"></b><div id="my-b" style="font-size:10px; color:#666"></div></div>
+        <div class="header">
+            <img id="my-av" style="width:35px; height:35px; border-radius:50%">
+            <b id="my-n"></b>
         </div>
         <div style="padding:10px; display:flex; gap:5px">
-            <input type="text" id="f-n" placeholder="Ник друга..." style="flex:1">
-            <button onclick="addF()">+</button>
+            <input id="f-n" placeholder="Ник друга" style="margin:0; font-size:12px">
+            <button class="btn" onclick="addF()" style="width:40px">+</button>
         </div>
-        <div id="f-list" style="overflow-y:auto; flex:1"></div>
+        <div id="f-list" style="flex:1; overflow-y:auto"></div>
     </div>
 
     <div class="chat-area">
         <div class="header">
-            <button onclick="document.getElementById('sb').classList.remove('hidden')" style="background:none; display:none;" id="back">❮</button>
-            <b id="c-h">Выберите друга</b>
+            <button onclick="document.getElementById('sb').classList.remove('hidden')" style="background:none; border:none; color:red; font-size:20px; display:none" id="back">❮</button>
+            <b id="c-h">Выберите диалог</b>
         </div>
         <div id="messages"></div>
         <div class="input-box" id="i-b" style="display:none">
-            <input type="text" id="m" placeholder="Сообщение...">
-            <button onclick="send()">➤</button>
+            <input id="m" placeholder="Написать..." style="margin:0">
+            <button class="btn" onclick="send()" style="width:60px">➤</button>
         </div>
     </div>
 
@@ -83,23 +82,22 @@
 
         function login() { socket.emit('login', {username: u.value, password: p.value}); }
         function reg() { socket.emit('register', {username: u.value, password: p.value}); }
+        function addF() { socket.emit('add_friend', f_n.value); f_n.value=""; }
 
         socket.on('login_success', d => {
-            me = d.username; auth_screen.style.display = 'none';
-            my_n.innerText = me; my_av.src = d.avatar; my_b.innerText = d.bio;
+            me = d.username; document.getElementById('auth-screen').style.display='none';
+            my_n.innerText = me; my_av.src = d.avatar;
             history = d.history; renderF(d.friends);
         });
 
-        function addF() { if(f_n.value) socket.emit('add_friend', f_n.value); }
-        
         function renderF(list) {
             f_list.innerHTML = "";
             list.forEach(f => {
                 let div = document.createElement('div');
                 div.style = "padding:15px; border-bottom:1px solid #111; cursor:pointer; display:flex; align-items:center; gap:10px";
-                div.innerHTML = `<img src="${f.avatar}" style="width:35px;height:35px;border-radius:5px"> <b>${f.name}</b>`;
+                div.innerHTML = `<img src="${f.avatar}" style="width:35px;height:35px;border-radius:8px"> <b>${f.name}</b> <span style="color:${f.online?'green':'#333'}">●</span>`;
                 div.onclick = () => {
-                    cur = f.name; c_h.innerText = cur; i_b.style.display = 'flex';
+                    cur = f.name; c_h.innerText = cur; i_b.style.display='flex';
                     if(window.innerWidth <= 768) { sb.classList.add('hidden'); back.style.display='block'; }
                     renderM();
                 };
@@ -107,8 +105,8 @@
             });
         }
 
-        function send() { if(m.value && cur) { socket.emit('private_message', {to: cur, text: m.value, type: 'text'}); m.value = ""; } }
-
+        function send() { if(m.value && cur) { socket.emit('private_message', {to:cur, text:m.value, type:'text'}); m.value=""; } }
+        
         socket.on('private_message', msg => {
             history.push(msg);
             if(cur === msg.from || cur === msg.to) renderM();
@@ -117,16 +115,16 @@
         function renderM() {
             messages.innerHTML = "";
             history.filter(m => (m.from===me && m.to===cur) || (m.from===cur && m.to===me)).forEach(m => {
-                let div = document.createElement('div');
-                div.className = `msg ${m.from===me?'sent':'received'}`;
-                div.innerText = m.text;
-                messages.appendChild(div);
+                let d = document.createElement('div');
+                d.className = `msg ${m.from===me?'sent':'received'}`;
+                d.innerText = m.text;
+                messages.appendChild(d);
             });
             messages.scrollTo(0, messages.scrollHeight);
         }
 
         socket.on('auth_error', e => alert(e));
-        socket.on('register_success', () => alert("Готово, входи!"));
+        socket.on('register_success', () => alert("Аккаунт создан!"));
     </script>
 </body>
 </html>
