@@ -3,17 +3,20 @@ const app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http, { cors: { origin: "*" }, maxHttpBufferSize: 1e8 });
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs'); // Модуль для работы с файлами
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Файлы для хранения данных
 const USERS_FILE = './users.json';
 const MSGS_FILE = './messages.json';
 
+// Загружаем данные из файлов, если они есть
 let usersDB = fs.existsSync(USERS_FILE) ? JSON.parse(fs.readFileSync(USERS_FILE)) : {};
 let messagesHistory = fs.existsSync(MSGS_FILE) ? JSON.parse(fs.readFileSync(MSGS_FILE)) : [];
 let onlineUsers = {};
 
+// Функция сохранения базы данных
 const saveData = () => {
     try {
         fs.writeFileSync(USERS_FILE, JSON.stringify(usersDB, null, 2));
@@ -36,19 +39,21 @@ io.on('connection', (socket) => {
             user.friends.forEach(fName => {
                 if (onlineUsers[fName]) io.to(onlineUsers[fName]).emit('friend_updated', { name: data.username, online: true });
             });
-        } else { socket.emit('auth_error', 'Неверный логин или пароль'); }
+        } else { socket.emit('auth_error', 'Неверный логин/пароль'); }
     });
 
     socket.on('register', (data) => {
-        if (!data.username || !data.password) return socket.emit('auth_error', 'Заполни поля!');
-        if (usersDB[data.username]) return socket.emit('auth_error', 'Этот ник уже занят');
+        if (!data.username || data.username.trim() === "" || !data.password) return socket.emit('auth_error', 'Заполни поля!');
+        if (usersDB[data.username]) return socket.emit('auth_error', 'Ник занят!');
+        
+        // Создаем аватарку по первой букве имени
         usersDB[data.username] = { 
             password: data.password, 
-            bio: "На связи AllWhite", 
-            avatar: `https://ui-avatars.com/api/?name=${data.username}&background=8b0000&color=fff`,
+            bio: "Юзер AllWhite", 
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=8b0000&color=fff`,
             friends: [] 
         };
-        saveData();
+        saveData(); // Сохраняем في файл
         socket.emit('register_success');
     });
 
@@ -57,27 +62,8 @@ io.on('connection', (socket) => {
         if (me && usersDB[me]) {
             if (data.avatar) usersDB[me].avatar = data.avatar;
             if (data.bio) usersDB[me].bio = data.bio;
-            if (data.newName && data.newName !== me && !usersDB[data.newName]) {
-                const oldName = me; const newName = data.newName;
-                usersDB[newName] = usersDB[oldName]; delete usersDB[oldName];
-                usersDB[newName].friends.forEach(f => {
-                    if (onlineUsers[f]) io.to(onlineUsers[f]).emit('friend_updated', { name: oldName, newName });
-                });
-                onlineUsers[newName] = onlineUsers[oldName]; delete onlineUsers[oldName];
-                saveData(); socket.emit('profile_updated', { newName, avatar: usersDB[newName].avatar, bio: usersDB[newName].bio });
-            } else {
-                saveData(); socket.emit('profile_updated', { avatar: usersDB[me].avatar, bio: usersDB[me].bio });
-            }
-        }
-    });
-
-    socket.on('add_friend', (name) => {
-        const me = Object.keys(onlineUsers).find(k => onlineUsers[k] === socket.id);
-        if (usersDB[name] && me !== name && !usersDB[me].friends.includes(name)) {
-            usersDB[me].friends.push(name);
-            usersDB[name].friends.push(me);
             saveData();
-            socket.emit('friend_added', { name, online: !!onlineUsers[name], avatar: usersDB[name].avatar });
+            socket.emit('profile_updated', { avatar: usersDB[me].avatar, bio: usersDB[me].bio });
         }
     });
 
@@ -85,21 +71,33 @@ io.on('connection', (socket) => {
         const sender = Object.keys(onlineUsers).find(k => onlineUsers[k] === socket.id);
         if (sender) {
             const msg = { 
-                id: Math.random().toString(36).substr(2, 9),
+                id: Math.random().toString(36).substr(2, 9), // Уникальный ID для удаления
                 from: sender, to: data.to, text: data.text, type: data.type, fileData: data.fileData, fileName: data.fileName,
                 time: new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'}) 
             };
-            messagesHistory.push(msg); saveData();
+            messagesHistory.push(msg);
+            saveData(); // Сохраняем في файл
             if (onlineUsers[data.to]) io.to(onlineUsers[data.to]).emit('private_message', msg);
             socket.emit('private_message', msg);
         }
     });
 
     socket.on('delete_message', (data) => {
+        // Удаляем сообщение из истории по ID
         messagesHistory = messagesHistory.filter(m => m.id !== data.msgId);
         saveData();
         if (onlineUsers[data.to]) io.to(onlineUsers[data.to]).emit('message_deleted', data.msgId);
         socket.emit('message_deleted', data.msgId);
+    });
+
+    socket.on('add_friend', (name) => {
+        const me = Object.keys(onlineUsers).find(k => onlineUsers[k] === socket.id);
+        if (me && usersDB[name] && me !== name && !usersDB[me].friends.includes(name)) {
+            usersDB[me].friends.push(name);
+            usersDB[name].friends.push(me);
+            saveData();
+            socket.emit('friend_added', { name, online: !!onlineUsers[name], avatar: usersDB[name].avatar });
+        }
     });
 
     socket.on('disconnect', () => {
@@ -114,4 +112,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => console.log(`AllWhite V5.3 Live on ${PORT}`));
+http.listen(PORT, () => console.log('AllWhite V6 persistent is running...'));
