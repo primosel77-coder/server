@@ -39,7 +39,7 @@ io.on('connection', (socket) => {
     socket.on('register', (data) => {
         if (!data.username || usersDB[data.username]) return socket.emit('auth_error', 'Ник занят');
         usersDB[data.username] = { 
-            password: data.password, bio: "AllWhite User", 
+            password: data.password, bio: "На связи AllWhite", 
             avatar: `https://ui-avatars.com/api/?name=${data.username}&background=8b0000&color=fff`,
             friends: [] 
         };
@@ -80,4 +80,4 @@ io.on('connection', (socket) => {
     });
 });
 
-http.listen(process.env.PORT || 3000, () => console.log('AllWhite Online'));
+http.listen(process.env.PORT || 3000, () => console.log('AllWhite V9 Online'));
