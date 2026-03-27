@@ -2,76 +2,71 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>AllWhite V7</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AllWhite V8</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        * { box-sizing: border-box; }
-        body { margin: 0; background: #050505; color: #fff; font-family: sans-serif; height: 100vh; display: flex; overflow: hidden; }
-        
-        /* Сферы фона */
-        .bg-glow { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.1; z-index: 0; pointer-events: none; }
-        .s1 { width: 300px; height: 300px; background: red; top: -50px; left: -50px; }
-        .s2 { width: 400px; height: 400px; background: #500; bottom: -50px; right: -50px; }
+        :root { --red: #ff4d4d; --dark-red: #8b0000; --bg: #050505; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: #fff; font-family: sans-serif; height: 100vh; display: flex; overflow: hidden; }
 
         /* Авторизация */
-        #auth-screen { position: fixed; inset: 0; background: #000; z-index: 999; display: flex; align-items: center; justify-content: center; }
+        #auth-screen { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; align-items: center; justify-content: center; }
         .auth-box { background: #111; padding: 30px; border-radius: 20px; width: 320px; text-align: center; border: 1px solid #222; }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; }
-        .btn { background: #8b0000; color: #fff; border: none; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        input { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 1px solid #333; color: #fff; border-radius: 8px; outline: none; }
+        .btn { background: var(--dark-red); color: #fff; border: none; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold; }
 
-        /* Сетка приложения */
-        .sidebar { width: 280px; border-right: 1px solid #1a1a1a; display: flex; flex-direction: column; background: #080808; z-index: 10; flex-shrink: 0; }
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: #050505; z-index: 5; position: relative; }
-
-        .header { height: 60px; padding: 0 15px; border-bottom: 1px solid #1a1a1a; display: flex; align-items: center; gap: 10px; background: #0a0a0a; }
+        /* Сайдбар */
+        .sidebar { width: 300px; border-right: 1px solid #1a1a1a; display: flex; flex-direction: column; background: #080808; flex-shrink: 0; }
+        .header { height: 60px; padding: 0 15px; border-bottom: 1px solid #1a1a1a; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        #f-list { flex: 1; overflow-y: auto; }
+        
+        /* Чат */
+        .chat-area { flex: 1; display: flex; flex-direction: column; background: #050505; position: relative; }
         #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        
-        .msg { padding: 10px 15px; border-radius: 15px; max-width: 85%; font-size: 14px; word-wrap: break-word; }
-        .sent { background: #8b0000; align-self: flex-end; }
-        .received { background: #1a1a1a; align-self: flex-start; }
+        .msg { padding: 10px 15px; border-radius: 15px; max-width: 80%; font-size: 14px; word-wrap: break-word; }
+        .sent { background: var(--dark-red); align-self: flex-end; border-bottom-right-radius: 2px; }
+        .received { background: #1a1a1a; align-self: flex-start; border-bottom-left-radius: 2px; }
 
-        .input-box { padding: 15px; display: flex; gap: 10px; background: #080808; border-top: 1px solid #1a1a1a; }
-        
+        .input-box { padding: 15px; display: flex; gap: 10px; background: #0a0a0a; border-top: 1px solid #1a1a1a; }
+
         @media (max-width: 768px) {
-            .sidebar { position: absolute; inset: 0; width: 100%; z-index: 100; transition: 0.3s; }
-            .sidebar.hidden { transform: translateX(-100%); }
+            .sidebar { position: absolute; width: 100%; height: 100%; z-index: 100; }
+            .sidebar.hidden { display: none; }
         }
     </style>
 </head>
 <body>
-    <div class="bg-glow s1"></div><div class="bg-glow s2"></div>
-
     <div id="auth-screen">
         <div class="auth-box">
-            <h1 style="color:red; margin:0 0 20px 0">AllWhite</h1>
+            <h1 style="color:red; font-size: 40px; margin-bottom: 20px;">AW</h1>
             <input id="u" placeholder="Логин">
             <input id="p" type="password" placeholder="Пароль">
             <button class="btn" onclick="login()">Войти</button>
-            <button class="btn" onclick="reg()" style="background:none; margin-top:5px">Регистрация</button>
+            <button class="btn" onclick="reg()" style="background:none; margin-top:5px">Создать аккаунт</button>
         </div>
     </div>
 
     <div class="sidebar" id="sb">
         <div class="header">
-            <img id="my-av" style="width:35px; height:35px; border-radius:50%">
+            <img id="my-av" style="width:35px; height:35px; border-radius:8px">
             <b id="my-n"></b>
         </div>
         <div style="padding:10px; display:flex; gap:5px">
-            <input id="f-n" placeholder="Ник друга" style="margin:0; font-size:12px">
-            <button class="btn" onclick="addF()" style="width:40px">+</button>
+            <input id="f-n" placeholder="Ник друга" style="margin:0">
+            <button class="btn" onclick="addF()" style="width:45px">+</button>
         </div>
-        <div id="f-list" style="flex:1; overflow-y:auto"></div>
+        <div id="f-list"></div>
     </div>
 
     <div class="chat-area">
         <div class="header">
-            <button onclick="document.getElementById('sb').classList.remove('hidden')" style="background:none; border:none; color:red; font-size:20px; display:none" id="back">❮</button>
-            <b id="c-h">Выберите диалог</b>
+            <button onclick="document.getElementById('sb').classList.remove('hidden')" style="background:none; border:none; color:red; margin-right:10px; display:none" id="back">❮</button>
+            <b id="c-h">Выберите чат</b>
         </div>
         <div id="messages"></div>
         <div class="input-box" id="i-b" style="display:none">
-            <input id="m" placeholder="Написать..." style="margin:0">
+            <input id="m" placeholder="Сообщение...">
             <button class="btn" onclick="send()" style="width:60px">➤</button>
         </div>
     </div>
@@ -95,7 +90,7 @@
             list.forEach(f => {
                 let div = document.createElement('div');
                 div.style = "padding:15px; border-bottom:1px solid #111; cursor:pointer; display:flex; align-items:center; gap:10px";
-                div.innerHTML = `<img src="${f.avatar}" style="width:35px;height:35px;border-radius:8px"> <b>${f.name}</b> <span style="color:${f.online?'green':'#333'}">●</span>`;
+                div.innerHTML = `<img src="${f.avatar}" style="width:35px;height:35px;border-radius:5px"> <b>${f.name}</b>`;
                 div.onclick = () => {
                     cur = f.name; c_h.innerText = cur; i_b.style.display='flex';
                     if(window.innerWidth <= 768) { sb.classList.add('hidden'); back.style.display='block'; }
@@ -124,7 +119,7 @@
         }
 
         socket.on('auth_error', e => alert(e));
-        socket.on('register_success', () => alert("Аккаунт создан!"));
+        socket.on('register_success', () => alert("Успех!"));
     </script>
 </body>
 </html>
