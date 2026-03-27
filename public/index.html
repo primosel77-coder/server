@@ -58,8 +58,37 @@
         #profile-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: none; align-items: center; justify-content: center; }
         .modal-content { background: #111; padding: 25px; border-radius: 20px; width: 85%; max-width: 320px; text-align: center; border: 1px solid #333; }
         .avatar { object-fit: cover; background: #222; }
-    </style>
-</head>
+    <style>
+    /* ... (все предыдущие стили) ... */
+
+    /* ГЛАВНОЕ ИСПРАВЛЕНИЕ ТУТ: z-index для авторизации */
+    #auth-screen { 
+        position: fixed; 
+        inset: 0; 
+        background: #000; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        z-index: 99999; /* Выше всех сфер и чатов */
+    }
+    
+    .auth-box { 
+        position: relative; 
+        z-index: 100000; 
+        background: rgba(15,15,15,0.9); 
+        backdrop-filter: blur(20px); 
+        padding: 30px; 
+        border-radius: 25px; 
+        width: 85%; 
+        max-width: 340px; 
+        text-align: center; 
+        border: 1px solid rgba(255,255,255,0.1); 
+    }
+
+    /* Чтобы сферы не мешали кликать в самом приложении */
+    .blur-sphere { pointer-events: none; }
+</style>
+
 <body>
     <div class="blur-sphere sphere-1"></div>
     <div class="blur-sphere sphere-2"></div>
@@ -69,23 +98,8 @@
             <div class="main-logo">AW</div>
             <input type="text" id="auth-n" placeholder="Логин">
             <input type="password" id="auth-p" placeholder="Пароль">
-            <button class="btn-main" onclick="login()">Войти</button>
-            <button class="btn-main" onclick="register()" style="background:transparent; border: 1px solid #333">Создать аккаунт</button>
-        </div>
-    </div>
-
-    <div id="profile-modal">
-        <div class="modal-content">
-            <h3 style="margin:0 0 15px 0">Профиль</h3>
-            <img id="modal-av" src="" class="avatar" style="width:90px; height:90px; border-radius:15px; margin-bottom:10px">
-            <input type="file" id="av-upload" style="display:none" onchange="uploadAvatar(this)" accept="image/*">
-            <button class="btn-main" onclick="document.getElementById('av-upload').click()" style="background:#222; margin-bottom:10px">Выбрать фото</button>
-            <input type="text" id="newName-input" placeholder="Новый ник">
-            <input type="text" id="bio-input" placeholder="Статус">
-            <div style="display:flex; gap:10px; margin-top:15px">
-                <button class="btn-main" onclick="saveProfile()" style="margin:0">Ок</button>
-                <button class="btn-main" onclick="document.getElementById('profile-modal').style.display='none'" style="margin:0; background:#333">Отмена</button>
-            </div>
+            <button type="button" class="btn-main" onclick="login()">Войти</button>
+            <button type="button" class="btn-main" onclick="register()" style="background:transparent; border: 1px solid #333">Создать аккаунт</button>
         </div>
     </div>
 
