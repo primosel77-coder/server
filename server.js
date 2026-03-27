@@ -5,7 +5,6 @@ const io = require('socket.io')(http, { cors: { origin: "*" }, maxHttpBufferSize
 const path = require('path');
 const fs = require('fs');
 
-// Указываем серверу брать файлы из папки public
 app.use(express.static(path.join(__dirname, 'public')));
 
 const USERS_FILE = './users.json';
@@ -28,10 +27,10 @@ io.on('connection', (socket) => {
         if (user && user.password === data.password) {
             onlineUsers[data.username] = socket.id;
             const myFriends = user.friends.map(fName => ({
-                name: fName, online: !!onlineUsers[fName], avatar: usersDB[fName]?.avatar || ''
+                name: fName, online: !!onlineUsers[fName], avatar: usersDB[fName]?.avatar || '', bio: usersDB[fName]?.bio || ''
             }));
             socket.emit('login_success', { 
-                username: data.username, avatar: user.avatar, friends: myFriends,
+                username: data.username, avatar: user.avatar, bio: user.bio, friends: myFriends,
                 history: messagesHistory.filter(m => m.from === data.username || m.to === data.username)
             });
             user.friends.forEach(fName => {
@@ -41,9 +40,11 @@ io.on('connection', (socket) => {
     });
 
     socket.on('register', (data) => {
+        if (!data.username || !data.password) return socket.emit('auth_error', 'Заполни поля!');
         if (usersDB[data.username]) return socket.emit('auth_error', 'Этот ник уже занят');
         usersDB[data.username] = { 
             password: data.password, 
+            bio: "На связи AllWhite", 
             avatar: `https://ui-avatars.com/api/?name=${data.username}&background=8b0000&color=fff`,
             friends: [] 
         };
@@ -51,39 +52,23 @@ io.on('connection', (socket) => {
         socket.emit('register_success');
     });
 
-    socket.on('private_message', (data) => {
-        const sender = Object.keys(onlineUsers).find(k => onlineUsers[k] === socket.id);
-        if (sender) {
-            const msg = { 
-                id: Math.random().toString(36).substr(2, 9),
-                from: sender, to: data.to, text: data.text, type: data.type, fileData: data.fileData,
-                read: false, time: new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'}) 
-            };
-            messagesHistory.push(msg);
-            saveData();
-            if (onlineUsers[data.to]) io.to(onlineUsers[data.to]).emit('private_message', msg);
-            socket.emit('private_message', msg);
-        }
-    });
-
-    // ИСПРАВЛЕННЫЙ БЛОК ПЕЧАТАЕТ
-    socket.on('typing', (data) => {
-        const sender = Object.keys(onlineUsers).find(k => onlineUsers[k] === socket.id);
-        if (sender && onlineUsers[data.to]) io.to(onlineUsers[data.to]).emit('user_typing', { from: sender });
-    });
-
-    socket.on('stop_typing', (data) => {
-        const sender = Object.keys(onlineUsers).find(k => onlineUsers[k] === socket.id);
-        if (sender && onlineUsers[data.to]) io.to(onlineUsers[data.to]).emit('user_stop_typing', { from: sender });
-    });
-
-    socket.on('mark_read', (data) => {
+    socket.on('update_profile', (data) => {
         const me = Object.keys(onlineUsers).find(k => onlineUsers[k] === socket.id);
-        messagesHistory.forEach(m => {
-            if (m.from === data.friend && m.to === me) m.read = true;
-        });
-        saveData();
-        if (onlineUsers[data.friend]) io.to(onlineUsers[data.friend]).emit('messages_read_by_friend', { by: me });
+        if (me && usersDB[me]) {
+            if (data.avatar) usersDB[me].avatar = data.avatar;
+            if (data.bio) usersDB[me].bio = data.bio;
+            if (data.newName && data.newName !== me && !usersDB[data.newName]) {
+                const oldName = me; const newName = data.newName;
+                usersDB[newName] = usersDB[oldName]; delete usersDB[oldName];
+                usersDB[newName].friends.forEach(f => {
+                    if (onlineUsers[f]) io.to(onlineUsers[f]).emit('friend_updated', { name: oldName, newName });
+                });
+                onlineUsers[newName] = onlineUsers[oldName]; delete onlineUsers[oldName];
+                saveData(); socket.emit('profile_updated', { newName, avatar: usersDB[newName].avatar, bio: usersDB[newName].bio });
+            } else {
+                saveData(); socket.emit('profile_updated', { avatar: usersDB[me].avatar, bio: usersDB[me].bio });
+            }
+        }
     });
 
     socket.on('add_friend', (name) => {
@@ -94,6 +79,27 @@ io.on('connection', (socket) => {
             saveData();
             socket.emit('friend_added', { name, online: !!onlineUsers[name], avatar: usersDB[name].avatar });
         }
+    });
+
+    socket.on('private_message', (data) => {
+        const sender = Object.keys(onlineUsers).find(k => onlineUsers[k] === socket.id);
+        if (sender) {
+            const msg = { 
+                id: Math.random().toString(36).substr(2, 9),
+                from: sender, to: data.to, text: data.text, type: data.type, fileData: data.fileData, fileName: data.fileName,
+                time: new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'}) 
+            };
+            messagesHistory.push(msg); saveData();
+            if (onlineUsers[data.to]) io.to(onlineUsers[data.to]).emit('private_message', msg);
+            socket.emit('private_message', msg);
+        }
+    });
+
+    socket.on('delete_message', (data) => {
+        messagesHistory = messagesHistory.filter(m => m.id !== data.msgId);
+        saveData();
+        if (onlineUsers[data.to]) io.to(onlineUsers[data.to]).emit('message_deleted', data.msgId);
+        socket.emit('message_deleted', data.msgId);
     });
 
     socket.on('disconnect', () => {
@@ -108,4 +114,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => console.log(`Server V5.2.1 is running on port ${PORT}`));
+http.listen(PORT, () => console.log(`AllWhite V5.3 Live on ${PORT}`));
