@@ -2,25 +2,25 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>AllWhite V3 - 100MB Files</title>
+    <title>AllWhite V3 - Friends</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root { --red: #8b0000; --bg: #0a0a0a; --panel: #141414; }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #fff; display: flex; height: 100vh; }
+        body { margin: 0; font-family: sans-serif; background: var(--bg); color: #fff; display: flex; height: 100vh; }
         .sidebar { width: 280px; background: var(--panel); border-right: 1px solid #222; display: flex; flex-direction: column; }
         .chat-area { flex: 1; display: flex; flex-direction: column; }
         #auth-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .auth-box { background: var(--panel); padding: 30px; border-radius: 12px; width: 300px; text-align: center; border: 1px solid #222; }
-        input { width: 90%; padding: 10px; margin: 10px 0; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 5px; }
+        input { width: 90%; padding: 10px; margin: 10px 0; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 5px; outline: none; }
         button { padding: 10px; background: var(--red); border: none; color: #fff; cursor: pointer; border-radius: 5px; font-weight: bold; }
-        .user-item { padding: 10px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
-        .user-item:hover { background: #1f1f1f; }
-        .avatar { width: 35px; height: 35px; border-radius: 50%; background: #333; }
+        .friend-item { padding: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; border-bottom: 1px solid #1a1a1a; }
+        .friend-item:hover { background: #1f1f1f; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #333; }
+        .status { width: 10px; height: 10px; border-radius: 50%; margin-left: -18px; margin-top: 28px; border: 2px solid var(--panel); }
         #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 10px; border-radius: 8px; max-width: 60%; font-size: 14px; position: relative; }
+        .msg { padding: 10px; border-radius: 8px; max-width: 60%; font-size: 14px; }
         .sent { align-self: flex-end; background: var(--red); }
         .received { align-self: flex-start; background: #222; }
-        .file-link { color: #5fb8ff; text-decoration: underline; cursor: pointer; display: block; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -36,24 +36,29 @@
     </div>
 
     <div class="sidebar">
-        <div style="padding:15px; border-bottom:1px solid #222"><b id="my-name"></b> (Online)</div>
-        <div id="user-list"></div>
+        <div style="padding:15px; border-bottom:1px solid #222; display:flex; align-items:center; gap:10px">
+            <img id="my-av" src="" class="avatar">
+            <b id="my-name"></b>
+        </div>
+        <div style="padding:10px; border-bottom:1px solid #222">
+            <input type="text" id="friend-search" placeholder="Добавить друга по нику..." style="width:75%; margin:0; font-size:12px">
+            <button onclick="addFriend()" style="width:20%; padding:8px">+</button>
+        </div>
+        <div id="friend-list"></div>
     </div>
 
     <div class="chat-area">
-        <div id="chat-header" style="padding:15px; background:var(--panel)">Выберите, кому написать</div>
+        <div id="chat-header" style="padding:15px; background:var(--panel); border-bottom:1px solid #222">Выберите друга</div>
         <div id="messages"></div>
-        <div style="padding:20px; background:var(--panel); display:flex; gap:10px; align-items:center">
-            <input type="file" id="file-input" style="display:none" onchange="sendFile(this)">
-            <button onclick="document.getElementById('file-input').click()" style="background:#222">📎</button>
+        <div style="padding:20px; background:var(--panel); display:flex; gap:10px">
             <input type="text" id="m-i" placeholder="Сообщение..." style="margin:0; flex:1">
-            <button onclick="sendText()" style="width:60px; margin:0">></button>
+            <button onclick="sendMsg()" style="width:50px; margin:0">></button>
         </div>
     </div>
 
     <script>
         const socket = io(window.location.origin, { transports: ['websocket', 'polling'] });
-        let me = "", selectedUser = "", allUsers = [], chatHistory = [];
+        let me = "", selectedFriend = "", friends = [], chatHistory = [];
 
         // АВТО-ВХОД
         window.onload = () => {
@@ -71,62 +76,59 @@
             socket.emit('register', { username: document.getElementById('auth-n').value, password: document.getElementById('auth-p').value });
         }
 
+        function addFriend() {
+            const n = document.getElementById('friend-search').value;
+            if(n) { socket.emit('add_friend', n); document.getElementById('friend-search').value = ""; }
+        }
+
         socket.on('login_success', data => {
             me = data.username; document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('my-name').innerText = me;
-            allUsers = data.allUsers; renderUsers();
+            document.getElementById('my-av').src = data.avatar;
+            friends = data.friends; renderFriends();
         });
 
-        function renderUsers() {
-            const list = document.getElementById('user-list'); list.innerHTML = "";
-            allUsers.filter(u => u.name !== me).forEach(u => {
-                const d = document.createElement('div'); d.className = "user-item";
-                d.innerHTML = `<img src="${u.avatar}" class="avatar"> <b>${u.name}</b>`;
-                d.onclick = () => { selectedUser = u.name; document.getElementById('chat-header').innerText = "@"+u.name; renderMessages(); };
+        socket.on('friend_added', f => { friends.push(f); renderFriends(); });
+        
+        socket.on('friend_status_change', data => {
+            const f = friends.find(u => u.name === data.name);
+            if(f) { f.online = data.online; renderFriends(); }
+        });
+
+        function renderFriends() {
+            const list = document.getElementById('friend-list'); list.innerHTML = "";
+            friends.forEach(f => {
+                const d = document.createElement('div'); d.className = "friend-item";
+                d.innerHTML = `
+                    <img src="${f.avatar}" class="avatar">
+                    <div class="status" style="background:${f.online?'#2ecc71':'#555'}"></div>
+                    <b>${f.name}</b>`;
+                d.onclick = () => { selectedFriend = f.name; document.getElementById('chat-header').innerText = "@"+f.name; renderMessages(); };
                 list.appendChild(d);
             });
         }
 
-        function sendText() {
+        function sendMsg() {
             const val = document.getElementById('m-i').value;
-            if(val && selectedUser) { socket.emit('private_message', { to: selectedUser, text: val }); document.getElementById('m-i').value = ""; }
-        }
-
-        function sendFile(input) {
-            const file = input.files[0];
-            if (!file || !selectedUser) return;
-            if (file.size > 100 * 1024 * 1024) return alert("Файл слишком большой! Лимит 100МБ.");
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                socket.emit('private_message', { 
-                    to: selectedUser, 
-                    text: `Файл: ${file.name}`, 
-                    fileData: e.target.result, 
-                    fileName: file.name 
-                });
-            };
-            reader.readAsDataURL(file);
+            if(val && selectedFriend) {
+                const msg = { to: selectedFriend, text: val };
+                socket.emit('private_message', msg);
+                document.getElementById('m-i').value = "";
+            }
         }
 
         socket.on('private_message', m => { chatHistory.push(m); renderMessages(); });
 
         function renderMessages() {
             const box = document.getElementById('messages'); box.innerHTML = "";
-            chatHistory.filter(m => (m.from===me && m.to===selectedUser) || (m.from===selectedUser && m.to===me)).forEach(m => {
+            chatHistory.filter(m => (m.from===me && m.to===selectedFriend) || (m.from===selectedFriend && m.to===me)).forEach(m => {
                 const d = document.createElement('div'); d.className = `msg ${m.from===me?'sent':'received'}`;
-                d.innerText = m.text;
-                if(m.fileData) {
-                    const link = document.createElement('a');
-                    link.className = "file-link"; link.href = m.fileData; link.download = m.fileName; link.innerText = "Скачать файл";
-                    d.appendChild(link);
-                }
-                box.appendChild(d);
+                d.innerText = m.text; box.appendChild(d);
             });
             box.scrollTo(0, box.scrollHeight);
         }
 
-        socket.on('register_success', () => alert("Готово! Входи."));
+        socket.on('register_success', () => alert("Аккаунт создан!"));
         socket.on('auth_error', e => alert(e));
     </script>
 </body>
