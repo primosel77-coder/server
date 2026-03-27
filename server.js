@@ -3,14 +3,13 @@ const app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http, {
   cors: { origin: "*" },
-  maxHttpBufferSize: 1e8 // Устанавливаем лимит 100 МБ (100 * 1024 * 1024)
+  maxHttpBufferSize: 1e8 // Поддержка файлов до 100МБ
 });
 const path = require('path');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-let usersDB = {}; 
-let messagesHistory = []; 
+let usersDB = {}; // { ник: { password, avatar, friends: [] } }
 let onlineUsers = {}; 
 
 io.on('connection', (socket) => {
@@ -18,8 +17,8 @@ io.on('connection', (socket) => {
         if (usersDB[data.username]) return socket.emit('auth_error', 'Ник занят');
         usersDB[data.username] = { 
             password: data.password, 
-            bio: "Юзер AllWhite", 
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=random` 
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=random`,
+            friends: [] 
         };
         socket.emit('register_success');
     });
@@ -28,33 +27,50 @@ io.on('connection', (socket) => {
         const user = usersDB[data.username];
         if (user && user.password === data.password) {
             onlineUsers[data.username] = socket.id;
+            // Отправляем данные только о друзьях
+            const myFriends = user.friends.map(fName => ({
+                name: fName,
+                online: !!onlineUsers[fName],
+                avatar: usersDB[fName] ? usersDB[fName].avatar : ''
+            }));
             socket.emit('login_success', { 
-                username: data.username,
+                username: data.username, 
                 avatar: user.avatar,
-                allUsers: Object.keys(usersDB).map(name => ({ 
-                    name, online: !!onlineUsers[name], avatar: usersDB[name].avatar 
-                }))
+                friends: myFriends 
             });
-            io.emit('update_user_list', Object.keys(usersDB).map(name => ({ 
-                name, online: !!onlineUsers[name], avatar: usersDB[name].avatar 
-            })));
+            // Уведомляем друзей, что мы в сети
+            user.friends.forEach(fName => {
+                if (onlineUsers[fName]) io.to(onlineUsers[fName]).emit('friend_status_change', { name: data.username, online: true });
+            });
         } else {
             socket.emit('auth_error', 'Ошибка входа');
         }
     });
 
-    // Обработка сообщений и файлов
+    socket.on('add_friend', (friendName) => {
+        const me = Object.keys(onlineUsers).find(k => onlineUsers[k] === socket.id);
+        if (me && usersDB[friendName] && me !== friendName) {
+            if (!usersDB[me].friends.includes(friendName)) {
+                usersDB[me].friends.push(friendName);
+                // Взаимное добавление для простоты
+                if (!usersDB[friendName].friends.includes(me)) usersDB[friendName].friends.push(me);
+                
+                socket.emit('friend_added', { 
+                    name: friendName, 
+                    online: !!onlineUsers[friendName], 
+                    avatar: usersDB[friendName].avatar 
+                });
+            }
+        } else {
+            socket.emit('auth_error', 'Пользователь не найден');
+        }
+    });
+
     socket.on('private_message', (data) => {
         const sender = Object.keys(onlineUsers).find(k => onlineUsers[k] === socket.id);
-        if (sender) {
-            const msg = { 
-                ...data, 
-                from: sender, 
-                time: new Date().toLocaleTimeString(),
-                isFile: !!data.fileData // Флаг, если это файл
-            };
-            messagesHistory.push(msg);
-            if (onlineUsers[data.to]) io.to(onlineUsers[data.to]).emit('private_message', msg);
+        if (sender && onlineUsers[data.to]) {
+            const msg = { ...data, from: sender, time: new Date().toLocaleTimeString() };
+            io.to(onlineUsers[data.to]).emit('private_message', msg);
             socket.emit('private_message', msg);
         }
     });
@@ -63,12 +79,14 @@ io.on('connection', (socket) => {
         const name = Object.keys(onlineUsers).find(k => onlineUsers[k] === socket.id);
         if (name) {
             delete onlineUsers[name];
-            io.emit('update_user_list', Object.keys(usersDB).map(n => ({ 
-                name: n, online: !!onlineUsers[n], avatar: usersDB[n].avatar 
-            })));
+            if (usersDB[name]) {
+                usersDB[name].friends.forEach(fName => {
+                    if (onlineUsers[fName]) io.to(onlineUsers[fName]).emit('friend_status_change', { name, online: false });
+                });
+            }
         }
     });
 });
 
 const PORT = process.env.PORT || 3000;
-http.listen(PORT, () => console.log('Server running with 100MB support'));
+http.listen(PORT, () => console.log('AllWhite V3: Friends & Auth system ready'));
