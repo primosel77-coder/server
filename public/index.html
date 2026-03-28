@@ -2,129 +2,787 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AllWhite Final Fix</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AllWhite</title>
     <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #050505; color: #fff; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; overflow: hidden; }
-
-        /* Сайдбар фиксированный, чтобы не "плыл" */
-        .sidebar { width: 320px; border-right: 1px solid #1a1a1a; display: flex; flex-direction: column; background: #080808; flex-shrink: 0; z-index: 10; }
-        .header { height: 70px; padding: 0 20px; border-bottom: 1px solid #1a1a1a; display: flex; align-items: center; gap: 15px; background: #0a0a0a; }
-        
-        /* Чат зона */
-        .chat-area { flex: 1; display: flex; flex-direction: column; background: #050505; position: relative; min-width: 0; }
-        #messages { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 12px; }
-        
-        /* Сообщения */
-        .msg { padding: 12px 18px; border-radius: 18px; max-width: 75%; font-size: 15px; line-height: 1.4; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-        .sent { background: #8b0000; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .received { background: #1a1a1a; align-self: flex-start; border-bottom-left-radius: 4px; }
-
-        /* Ввод */
-        .input-box { padding: 20px; display: flex; gap: 12px; background: #0a0a0a; border-top: 1px solid #1a1a1a; }
-        input { flex: 1; background: #000; border: 1px solid #222; color: #fff; padding: 12px 18px; border-radius: 12px; outline: none; transition: 0.2s; }
-        input:focus { border-color: #8b0000; }
-        .btn { background: #8b0000; color: #fff; border: none; padding: 12px 25px; border-radius: 12px; cursor: pointer; font-weight: 600; }
-
-        /* Мобилка */
-        @media (max-width: 768px) {
-            .sidebar { position: absolute; width: 100%; height: 100%; }
-            .sidebar.hidden { display: none; }
-            #back { display: block !important; }
+        :root {
+            --bg:          #0a0a0b;
+            --bg2:         #111114;
+            --bg3:         #18181d;
+            --bg4:         #1f1f26;
+            --border:      rgba(255,255,255,0.06);
+            --accent:      #c0392b;
+            --accent2:     #e74c3c;
+            --accent-glow: rgba(192,57,43,0.25);
+            --text:        #f0f0f0;
+            --text2:       #888892;
+            --text3:       #555560;
+            --green:       #27ae60;
+            --sidebar-w:   320px;
         }
-        
-        #auth-screen { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .auth-box { background: #111; padding: 40px; border-radius: 25px; width: 350px; text-align: center; border: 1px solid #222; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ─── LAYOUT ─────────────────────────────────────────── */
+        #app {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        /* ─── AUTH ───────────────────────────────────────────── */
+        #auth-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn .3s ease;
+        }
+
+        .auth-wrap {
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+        }
+
+        .auth-logo {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 42px;
+            letter-spacing: -2px;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .auth-logo span { color: var(--accent); }
+
+        .auth-subtitle {
+            font-size: 13px;
+            color: var(--text3);
+            margin-bottom: 36px;
+            letter-spacing: .5px;
+        }
+
+        .auth-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 32px;
+        }
+
+        .field { margin-bottom: 14px; }
+
+        .field label {
+            display: block;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text3);
+            margin-bottom: 7px;
+            font-weight: 500;
+        }
+
+        .field input {
+            width: 100%;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 13px 16px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: 'DM Sans', sans-serif;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        .field input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: background .2s, transform .1s, box-shadow .2s;
+        }
+
+        .btn-primary:hover { background: var(--accent2); box-shadow: 0 4px 20px var(--accent-glow); }
+        .btn-primary:active { transform: scale(.98); }
+
+        .btn-ghost {
+            width: 100%;
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text2);
+            padding: 13px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: border-color .2s, color .2s;
+        }
+
+        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ─── SIDEBAR ────────────────────────────────────────── */
+        #sidebar {
+            width: var(--sidebar-w);
+            flex-shrink: 0;
+            background: var(--bg2);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 20px 20px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            flex-shrink: 0;
+        }
+
+        .my-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+            object-fit: cover;
+            background: var(--bg4);
+            flex-shrink: 0;
+        }
+
+        .my-info { flex: 1; min-width: 0; }
+
+        .my-name {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .my-status {
+            font-size: 11px;
+            color: var(--green);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 2px;
+        }
+
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+        .aw-logo {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 20px;
+            color: var(--accent);
+            letter-spacing: -1px;
+        }
+
+        .sidebar-search {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-search input {
+            flex: 1;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            outline: none;
+            transition: border-color .2s;
+            min-width: 0;
+        }
+
+        .sidebar-search input::placeholder { color: var(--text3); }
+        .sidebar-search input:focus { border-color: var(--accent); }
+
+        .btn-add {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background .2s;
+        }
+
+        .btn-add:hover { background: var(--accent2); }
+
+        #friends-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+        #friends-list::-webkit-scrollbar { width: 3px; }
+        #friends-list::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+        .friend-item {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            padding: 11px 16px;
+            cursor: pointer;
+            transition: background .15s;
+            position: relative;
+        }
+
+        .friend-item:hover { background: var(--bg3); }
+
+        .friend-item.active { background: var(--bg4); }
+
+        .friend-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 8px; bottom: 8px;
+            width: 3px;
+            background: var(--accent);
+            border-radius: 0 3px 3px 0;
+        }
+
+        .f-avatar-wrap { position: relative; flex-shrink: 0; }
+
+        .f-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            object-fit: cover;
+            background: var(--bg4);
+            display: block;
+        }
+
+        .f-online {
+            position: absolute;
+            bottom: -2px; right: -2px;
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: var(--green);
+            border: 2px solid var(--bg2);
+            display: none;
+        }
+
+        .f-online.on { display: block; }
+
+        .f-info { flex: 1; min-width: 0; }
+
+        .f-name {
+            font-weight: 500;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .f-sub {
+            font-size: 12px;
+            color: var(--text3);
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ─── CHAT ───────────────────────────────────────────── */
+        #chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            min-width: 0;
+            background: var(--bg);
+        }
+
+        .chat-header {
+            height: 65px;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 13px;
+            flex-shrink: 0;
+            background: var(--bg);
+        }
+
+        #btn-back {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text2);
+            cursor: pointer;
+            padding: 4px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ch-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 11px;
+            object-fit: cover;
+            background: var(--bg4);
+            display: none;
+        }
+
+        .ch-info { flex: 1; min-width: 0; }
+
+        .ch-name {
+            font-family: 'Syne', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ch-status { font-size: 11px; color: var(--text3); margin-top: 1px; }
+        .ch-status.online { color: var(--green); }
+
+        #empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .empty-logo {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 72px;
+            color: var(--bg3);
+            letter-spacing: -4px;
+            line-height: 1;
+        }
+
+        .empty-hint { font-size: 13px; color: var(--text3); }
+
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        #messages::-webkit-scrollbar { width: 3px; }
+        #messages::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+        .msg-row { display: flex; flex-direction: column; }
+        .msg-row.sent  { align-items: flex-end; }
+        .msg-row.recv  { align-items: flex-start; }
+
+        .bubble {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-word;
+            animation: popIn .15s ease;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(.95) translateY(5px); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        .msg-row.sent  .bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 5px; }
+        .msg-row.recv  .bubble { background: var(--bg3); color: var(--text); border-bottom-left-radius: 5px; }
+
+        .msg-time { font-size: 10px; color: var(--text3); margin-top: 3px; padding: 0 4px; }
+
+        #input-box {
+            padding: 14px 20px;
+            border-top: 1px solid var(--border);
+            display: none;
+            gap: 10px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        #msg-input {
+            flex: 1;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 12px 16px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+            min-width: 0;
+        }
+
+        #msg-input::placeholder { color: var(--text3); }
+        #msg-input:focus { border-color: rgba(192,57,43,.5); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+        .btn-send {
+            background: var(--accent);
+            border: none;
+            color: #fff;
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background .2s, transform .1s, box-shadow .2s;
+        }
+
+        .btn-send:hover { background: var(--accent2); box-shadow: 0 4px 16px var(--accent-glow); }
+        .btn-send:active { transform: scale(.95); }
+
+        /* ─── TOAST ──────────────────────────────────────────── */
+        #toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(16px);
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 9px 20px;
+            border-radius: 50px;
+            font-size: 13px;
+            opacity: 0;
+            transition: opacity .25s, transform .25s;
+            pointer-events: none;
+            z-index: 9998;
+            white-space: nowrap;
+        }
+
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ─── MOBILE ─────────────────────────────────────────── */
+        #overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.55);
+            z-index: 99;
+            backdrop-filter: blur(2px);
+        }
+
+        @media (max-width: 700px) {
+            #sidebar {
+                position: fixed;
+                top: 0; left: 0; bottom: 0;
+                transform: translateX(-100%);
+                transition: transform .3s cubic-bezier(.4,0,.2,1);
+                box-shadow: 12px 0 48px rgba(0,0,0,.6);
+            }
+
+            #sidebar.open { transform: translateX(0); }
+            #overlay.show { display: block; }
+            #btn-back { display: flex !important; }
+
+            #messages { padding: 14px 16px; }
+            #input-box { padding: 10px 14px; }
+            .chat-header { padding: 0 14px; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
     </style>
 </head>
 <body>
-    <div id="auth-screen">
-        <div class="auth-box">
-            <h1 style="color:#8b0000; font-size: 45px; margin-bottom: 25px; letter-spacing: -2px;">AW</h1>
-            <input id="u" placeholder="Логин">
-            <input id="p" type="password" placeholder="Пароль">
-            <button class="btn" style="width:100%" onclick="login()">Войти</button>
-            <button class="btn" style="width:100%; background:none; margin-top:10px; font-size:13px; color:#666" onclick="reg()">Зарегистрироваться</button>
+
+<!-- AUTH -->
+<div id="auth-screen">
+    <div class="auth-wrap">
+        <div class="auth-logo">All<span>White</span></div>
+        <div class="auth-subtitle">Твой личный мессенджер</div>
+        <div class="auth-card">
+            <div class="field">
+                <label>Логин</label>
+                <input id="inp-u" placeholder="username" autocomplete="username">
+            </div>
+            <div class="field">
+                <label>Пароль</label>
+                <input id="inp-p" type="password" placeholder="••••••••" autocomplete="current-password">
+            </div>
+            <button class="btn-primary" onclick="doLogin()">Войти</button>
+            <button class="btn-ghost" onclick="doReg()">Зарегистрироваться</button>
         </div>
     </div>
+</div>
 
-    <div class="sidebar" id="sb">
-        <div class="header">
-            <img id="my-av" style="width:40px; height:40px; border-radius:10px; object-fit: cover;">
-            <div><b id="my-n" style="display:block"></b><span style="font-size:10px; color:#2ecc71">Online</span></div>
+<!-- Mobile overlay -->
+<div id="overlay" onclick="closeSidebar()"></div>
+
+<!-- APP -->
+<div id="app">
+
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <img id="my-avatar" class="my-avatar" src="" alt="">
+            <div class="my-info">
+                <div class="my-name" id="my-name">—</div>
+                <div class="my-status"><span class="dot"></span> Online</div>
+            </div>
+            <div class="aw-logo">AW</div>
         </div>
-        <div style="padding:15px; display:flex; gap:8px">
-            <input id="f-n" placeholder="Добавить друга..." style="margin:0; font-size:13px">
-            <button class="btn" onclick="addF()" style="padding:0 15px">+</button>
+
+        <div class="sidebar-search">
+            <input id="friend-inp" placeholder="Добавить друга..." onkeydown="if(event.key==='Enter') addFriend()">
+            <button class="btn-add" onclick="addFriend()">+</button>
         </div>
-        <div id="f-list" style="overflow-y:auto"></div>
+
+        <div id="friends-list"></div>
     </div>
 
-    <div class="chat-area">
-        <div class="header">
-            <button onclick="document.getElementById('sb').classList.remove('hidden')" style="background:none; border:none; color:#8b0000; font-size:22px; cursor:pointer; display:none" id="back">❮</button>
-            <b id="c-h" style="font-size:18px">Выберите диалог</b>
+    <!-- CHAT -->
+    <div id="chat-area">
+        <div class="chat-header">
+            <button id="btn-back" onclick="openSidebar()">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+            </button>
+            <img id="ch-avatar" class="ch-avatar" src="" alt="">
+            <div class="ch-info">
+                <div class="ch-name" id="ch-name">AllWhite</div>
+                <div class="ch-status" id="ch-status">Выберите диалог</div>
+            </div>
         </div>
+
+        <div id="empty-state">
+            <div class="empty-logo">AW</div>
+            <div class="empty-hint">Выберите диалог, чтобы начать</div>
+        </div>
+
         <div id="messages"></div>
-        <div class="input-box" id="i-b" style="display:none">
-            <input id="m" placeholder="Напишите сообщение...">
-            <button class="btn" onclick="send()">Отправить</button>
+
+        <div id="input-box">
+            <input id="msg-input" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMsg()" autocomplete="off">
+            <button class="btn-send" onclick="sendMsg()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <path d="M2 21l21-9L2 3v7l15 2-15 2z"/>
+                </svg>
+            </button>
         </div>
     </div>
+</div>
 
-    <script>
-        const socket = io();
-        let me = "", cur = "", history = [];
+<div id="toast"></div>
 
-        function login() { socket.emit('login', {username: u.value, password: p.value}); }
-        function reg() { socket.emit('register', {username: u.value, password: p.value}); }
-        function addF() { if(f_n.value) { socket.emit('add_friend', f_n.value); f_n.value=""; } }
+<script>
+    const socket = io();
+    let me = '', cur = '', history = [], friends = [];
 
-        socket.on('login_success', d => {
-            me = d.username; document.getElementById('auth-screen').style.display='none';
-            my_n.innerText = me; my_av.src = d.avatar;
-            history = d.history; renderF(d.friends);
+    /* ── utils ─────────────────────────────── */
+    function $(id) { return document.getElementById(id); }
+
+    function toast(msg) {
+        const t = $('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(t._t);
+        t._t = setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function openSidebar() {
+        $('sidebar').classList.add('open');
+        $('overlay').classList.add('show');
+    }
+
+    function closeSidebar() {
+        $('sidebar').classList.remove('open');
+        $('overlay').classList.remove('show');
+    }
+
+    /* ── auth ──────────────────────────────── */
+    function doLogin() {
+        const u = $('inp-u').value.trim(), p = $('inp-p').value;
+        if (!u || !p) return toast('Заполни все поля');
+        socket.emit('login', { username: u, password: p });
+    }
+
+    function doReg() {
+        const u = $('inp-u').value.trim(), p = $('inp-p').value;
+        if (!u || !p) return toast('Заполни все поля');
+        socket.emit('register', { username: u, password: p });
+    }
+
+    socket.on('login_success', d => {
+        me = d.username;
+        history = d.history || [];
+        friends = d.friends || [];
+        $('auth-screen').style.display = 'none';
+        $('my-name').textContent = me;
+        $('my-avatar').src = d.avatar;
+        renderFriends();
+        if (window.innerWidth <= 700) openSidebar();
+    });
+
+    socket.on('register_success', () => toast('Аккаунт создан — войди!'));
+    socket.on('auth_error', e => toast(e));
+
+    /* ── friends ───────────────────────────── */
+    function addFriend() {
+        const v = $('friend-inp').value.trim();
+        if (v) { socket.emit('add_friend', v); $('friend-inp').value = ''; }
+    }
+
+    socket.on('friend_added', f => {
+        friends.push(f);
+        renderFriends();
+        toast(`${f.name} добавлен!`);
+    });
+
+    socket.on('friend_updated', d => {
+        const f = friends.find(x => x.name === d.name);
+        if (f) { f.online = d.online; renderFriends(); }
+        if (cur === d.name) {
+            const st = $('ch-status');
+            st.textContent = d.online ? 'В сети' : 'Не в сети';
+            st.className = 'ch-status' + (d.online ? ' online' : '');
+        }
+    });
+
+    function lastMsg(name) {
+        const msgs = history.filter(m =>
+            (m.from === me && m.to === name) || (m.from === name && m.to === me));
+        if (!msgs.length) return '';
+        const l = msgs[msgs.length - 1];
+        return (l.from === me ? 'Вы: ' : '') + (l.text || '[файл]');
+    }
+
+    function renderFriends() {
+        const el = $('friends-list');
+        el.innerHTML = '';
+        friends.forEach(f => {
+            const d = document.createElement('div');
+            d.className = 'friend-item' + (cur === f.name ? ' active' : '');
+            d.dataset.name = f.name;
+            const av = f.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.name)}&background=8b0000&color=fff`;
+            const sub = lastMsg(f.name) || (f.online ? 'В сети' : 'Не в сети');
+            d.innerHTML = `
+                <div class="f-avatar-wrap">
+                    <img class="f-avatar" src="${av}" alt="">
+                    <span class="f-online${f.online ? ' on' : ''}"></span>
+                </div>
+                <div class="f-info">
+                    <div class="f-name">${esc(f.name)}</div>
+                    <div class="f-sub">${esc(sub)}</div>
+                </div>`;
+            d.onclick = () => openChat(f);
+            el.appendChild(d);
         });
+    }
 
-        function renderF(list) {
-            f_list.innerHTML = "";
-            list.forEach(f => {
-                let div = document.createElement('div');
-                div.style = "padding:18px 20px; border-bottom:1px solid #121212; cursor:pointer; display:flex; align-items:center; gap:12px; transition:0.2s";
-                div.onmouseover = () => div.style.background = "#0f0f0f";
-                div.onmouseout = () => div.style.background = "transparent";
-                div.innerHTML = `<img src="${f.avatar}" style="width:40px;height:40px;border-radius:10px"> <b>${f.name}</b>`;
-                div.onclick = () => {
-                    cur = f.name; c_h.innerText = cur; i_b.style.display='flex';
-                    if(window.innerWidth <= 768) { sb.classList.add('hidden'); back.style.display='block'; }
-                    renderM();
-                };
-                f_list.appendChild(div);
-            });
+    /* ── chat ──────────────────────────────── */
+    function openChat(f) {
+        cur = f.name;
+
+        $('ch-name').textContent = f.name;
+        const st = $('ch-status');
+        st.textContent = f.online ? 'В сети' : 'Не в сети';
+        st.className = 'ch-status' + (f.online ? ' online' : '');
+
+        const av = $('ch-avatar');
+        av.src = f.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.name)}&background=8b0000&color=fff`;
+        av.style.display = 'block';
+
+        $('empty-state').style.display = 'none';
+        $('messages').style.display = 'flex';
+        $('input-box').style.display = 'flex';
+
+        document.querySelectorAll('.friend-item').forEach(el =>
+            el.classList.toggle('active', el.dataset.name === f.name));
+
+        renderMessages();
+        if (window.innerWidth <= 700) closeSidebar();
+        $('msg-input').focus();
+    }
+
+    function renderMessages() {
+        const el = $('messages');
+        const msgs = history.filter(m =>
+            (m.from === me && m.to === cur) || (m.from === cur && m.to === me));
+        el.innerHTML = '';
+
+        if (!msgs.length) {
+            el.innerHTML = `<div style="margin:auto;text-align:center;color:var(--text3);font-size:13px;">Нет сообщений — напишите первым!</div>`;
+            return;
         }
 
-        function send() { if(m.value && cur) { socket.emit('private_message', {to:cur, text:m.value, type:'text'}); m.value=""; } }
-        
-        socket.on('private_message', msg => {
-            history.push(msg);
-            if(cur === msg.from || cur === msg.to) renderM();
+        msgs.forEach(m => {
+            const row = document.createElement('div');
+            row.className = 'msg-row ' + (m.from === me ? 'sent' : 'recv');
+            row.innerHTML = `<div class="bubble">${esc(m.text || '')}</div><div class="msg-time">${m.time || ''}</div>`;
+            el.appendChild(row);
         });
 
-        function renderM() {
-            messages.innerHTML = "";
-            history.filter(m => (m.from===me && m.to===cur) || (m.from===cur && m.to===me)).forEach(m => {
-                let d = document.createElement('div');
-                d.className = `msg ${m.from===me?'sent':'received'}`;
-                d.innerText = m.text;
-                messages.appendChild(d);
-            });
-            messages.scrollTo(0, messages.scrollHeight);
-        }
+        el.scrollTop = el.scrollHeight;
+    }
 
-        socket.on('auth_error', e => alert(e));
-        socket.on('register_success', () => alert("Аккаунт готов!"));
-    </script>
+    function sendMsg() {
+        const inp = $('msg-input');
+        const text = inp.value.trim();
+        if (!text || !cur) return;
+        socket.emit('private_message', { to: cur, text, type: 'text' });
+        inp.value = '';
+    }
+
+    socket.on('private_message', msg => {
+        history.push(msg);
+        if (cur === msg.from || cur === msg.to) renderMessages();
+        renderFriends();
+    });
+</script>
 </body>
 </html>
