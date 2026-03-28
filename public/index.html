@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AllWhite</title>
     <script src="/socket.io/socket.io.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg:          #0a0a0b;
@@ -13,6 +13,7 @@
             --bg3:         #18181d;
             --bg4:         #1f1f26;
             --border:      rgba(255,255,255,0.06);
+            --border2:     rgba(255,255,255,0.10);
             --accent:      #c0392b;
             --accent2:     #e74c3c;
             --accent-glow: rgba(192,57,43,0.25);
@@ -20,516 +21,299 @@
             --text2:       #888892;
             --text3:       #555560;
             --green:       #27ae60;
+            --red:         #e74c3c;
             --sidebar-w:   320px;
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         html, body {
-            height: 100%;
-            overflow: hidden;
-            background: var(--bg);
-            color: var(--text);
+            height: 100%; overflow: hidden;
+            background: var(--bg); color: var(--text);
             font-family: 'DM Sans', sans-serif;
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ─── LAYOUT ─────────────────────────────────────────── */
-        #app {
-            display: flex;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-        }
+        #app { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
 
-        /* ─── AUTH ───────────────────────────────────────────── */
+        /* ─── AUTH ────────────────────────────── */
         #auth-screen {
-            position: fixed;
-            inset: 0;
-            background: var(--bg);
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn .3s ease;
+            position: fixed; inset: 0; background: var(--bg);
+            z-index: 9999; display: flex; align-items: center; justify-content: center;
         }
-
-        .auth-wrap {
-            width: 100%;
-            max-width: 400px;
-            padding: 24px;
-        }
-
-        .auth-logo {
-            font-family: 'Syne', sans-serif;
-            font-weight: 800;
-            font-size: 42px;
-            letter-spacing: -2px;
-            color: var(--text);
-            margin-bottom: 6px;
-        }
-
+        .auth-wrap { width: 100%; max-width: 400px; padding: 24px; }
+        .auth-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 44px; letter-spacing: -2px; margin-bottom: 5px; }
         .auth-logo span { color: var(--accent); }
-
-        .auth-subtitle {
-            font-size: 13px;
-            color: var(--text3);
-            margin-bottom: 36px;
-            letter-spacing: .5px;
-        }
-
-        .auth-card {
-            background: var(--bg2);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 32px;
-        }
+        .auth-sub { font-size: 13px; color: var(--text3); margin-bottom: 32px; letter-spacing: .4px; }
+        .auth-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 22px; padding: 30px; }
 
         .field { margin-bottom: 14px; }
-
-        .field label {
-            display: block;
-            font-size: 11px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            color: var(--text3);
-            margin-bottom: 7px;
-            font-weight: 500;
-        }
-
-        .field input {
-            width: 100%;
-            background: var(--bg3);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 13px 16px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-family: 'DM Sans', sans-serif;
-            outline: none;
+        .field label { display: block; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); margin-bottom: 7px; font-weight: 500; }
+        .field input, .field textarea {
+            width: 100%; background: var(--bg3); border: 1px solid var(--border);
+            color: var(--text); padding: 12px 15px; border-radius: 11px;
+            font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none;
             transition: border-color .2s, box-shadow .2s;
         }
+        .field input:focus, .field textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .field textarea { resize: none; min-height: 80px; }
 
-        .field input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px var(--accent-glow);
-        }
+        .remember-row { display: flex; align-items: center; gap: 9px; margin-bottom: 16px; cursor: pointer; user-select: none; }
+        .remember-row input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+        .remember-row span { font-size: 13px; color: var(--text2); }
 
         .btn-primary {
-            width: 100%;
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            padding: 14px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: 600;
-            font-family: 'DM Sans', sans-serif;
-            cursor: pointer;
-            margin-top: 6px;
-            transition: background .2s, transform .1s, box-shadow .2s;
+            width: 100%; background: var(--accent); color: #fff; border: none;
+            padding: 13px; border-radius: 11px; font-size: 15px; font-weight: 600;
+            font-family: 'DM Sans', sans-serif; cursor: pointer; margin-top: 4px;
+            transition: background .2s, transform .1s;
         }
-
-        .btn-primary:hover { background: var(--accent2); box-shadow: 0 4px 20px var(--accent-glow); }
+        .btn-primary:hover { background: var(--accent2); }
         .btn-primary:active { transform: scale(.98); }
 
         .btn-ghost {
-            width: 100%;
-            background: none;
-            border: 1px solid var(--border);
-            color: var(--text2);
-            padding: 13px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-family: 'DM Sans', sans-serif;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: border-color .2s, color .2s;
+            width: 100%; background: none; border: 1px solid var(--border); color: var(--text2);
+            padding: 12px; border-radius: 11px; font-size: 13px; font-family: 'DM Sans', sans-serif;
+            cursor: pointer; margin-top: 9px; transition: border-color .2s, color .2s;
         }
-
         .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
 
-        /* ─── SIDEBAR ────────────────────────────────────────── */
+        /* ─── SIDEBAR ─────────────────────────── */
         #sidebar {
-            width: var(--sidebar-w);
-            flex-shrink: 0;
-            background: var(--bg2);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-            z-index: 100;
+            width: var(--sidebar-w); flex-shrink: 0; background: var(--bg2);
+            border-right: 1px solid var(--border); display: flex;
+            flex-direction: column; height: 100vh; overflow: hidden;
+            z-index: 100; transition: transform .3s cubic-bezier(.4,0,.2,1);
         }
 
-        .sidebar-header {
-            padding: 20px 20px 16px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 13px;
-            flex-shrink: 0;
+        .sidebar-head {
+            padding: 16px 16px 14px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 11px; flex-shrink: 0;
         }
-
-        .my-avatar {
-            width: 42px;
-            height: 42px;
-            border-radius: 13px;
-            object-fit: cover;
-            background: var(--bg4);
-            flex-shrink: 0;
+        .my-av {
+            width: 42px; height: 42px; border-radius: 13px; object-fit: cover;
+            background: var(--bg4); flex-shrink: 0; cursor: pointer; transition: opacity .2s;
         }
-
+        .my-av:hover { opacity: .8; }
         .my-info { flex: 1; min-width: 0; }
-
         .my-name {
-            font-family: 'Syne', sans-serif;
-            font-weight: 700;
-            font-size: 15px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+            transition: color .2s;
         }
-
-        .my-status {
-            font-size: 11px;
-            color: var(--green);
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            margin-top: 2px;
-        }
-
-        .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
-
-        .aw-logo {
-            font-family: 'Syne', sans-serif;
-            font-weight: 800;
-            font-size: 20px;
-            color: var(--accent);
-            letter-spacing: -1px;
-        }
+        .my-name:hover { color: var(--accent); }
+        .my-online { font-size: 11px; color: var(--green); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+        .my-online::before { content:''; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+        .aw-badge { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--accent); letter-spacing: -1px; }
 
         .sidebar-search {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            gap: 8px;
-            flex-shrink: 0;
+            padding: 12px 14px; border-bottom: 1px solid var(--border);
+            display: flex; gap: 8px; flex-shrink: 0;
         }
-
         .sidebar-search input {
-            flex: 1;
-            background: var(--bg3);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 10px 14px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-family: 'DM Sans', sans-serif;
-            outline: none;
-            transition: border-color .2s;
-            min-width: 0;
+            flex: 1; background: var(--bg3); border: 1px solid var(--border);
+            color: var(--text); padding: 9px 13px; border-radius: 10px;
+            font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none;
+            transition: border-color .2s; min-width: 0;
         }
-
         .sidebar-search input::placeholder { color: var(--text3); }
         .sidebar-search input:focus { border-color: var(--accent); }
-
         .btn-add {
-            background: var(--accent);
-            color: #fff;
-            border: none;
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            font-size: 22px;
-            line-height: 1;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: background .2s;
+            background: var(--accent); color: #fff; border: none;
+            width: 36px; height: 36px; border-radius: 10px; font-size: 22px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: background .2s; flex-shrink: 0;
         }
-
         .btn-add:hover { background: var(--accent2); }
 
-        #friends-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+        #friends-list { flex: 1; overflow-y: auto; overflow-x: hidden; }
         #friends-list::-webkit-scrollbar { width: 3px; }
-        #friends-list::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+        #friends-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-        .friend-item {
-            display: flex;
-            align-items: center;
-            gap: 13px;
-            padding: 11px 16px;
-            cursor: pointer;
-            transition: background .15s;
-            position: relative;
+        .f-item {
+            padding: 10px 12px; display: flex; align-items: center; gap: 11px;
+            cursor: pointer; border-radius: 12px; margin: 2px 8px;
+            transition: background .15s; position: relative;
         }
+        .f-item:hover { background: var(--bg3); }
+        .f-item.active { background: var(--bg4); }
+        .f-av-wrap { position: relative; flex-shrink: 0; }
+        .f-av { width: 44px; height: 44px; border-radius: 13px; object-fit: cover; background: var(--bg4); }
+        .f-dot { position: absolute; bottom: -2px; right: -2px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--bg2); background: var(--text3); }
+        .f-dot.on { background: var(--green); }
+        .f-meta { flex: 1; min-width: 0; }
+        .f-name { font-weight: 500; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .f-sub { font-size: 12px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+        .f-badge { background: var(--accent); color: #fff; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 10px; flex-shrink: 0; }
 
-        .friend-item:hover { background: var(--bg3); }
-
-        .friend-item.active { background: var(--bg4); }
-
-        .friend-item.active::before {
-            content: '';
-            position: absolute;
-            left: 0; top: 8px; bottom: 8px;
-            width: 3px;
-            background: var(--accent);
-            border-radius: 0 3px 3px 0;
-        }
-
-        .f-avatar-wrap { position: relative; flex-shrink: 0; }
-
-        .f-avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
-            object-fit: cover;
-            background: var(--bg4);
-            display: block;
-        }
-
-        .f-online {
-            position: absolute;
-            bottom: -2px; right: -2px;
-            width: 12px; height: 12px;
-            border-radius: 50%;
-            background: var(--green);
-            border: 2px solid var(--bg2);
-            display: none;
-        }
-
-        .f-online.on { display: block; }
-
-        .f-info { flex: 1; min-width: 0; }
-
-        .f-name {
-            font-weight: 500;
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .f-sub {
-            font-size: 12px;
-            color: var(--text3);
-            margin-top: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* ─── CHAT ───────────────────────────────────────────── */
+        /* ─── CHAT ────────────────────────────── */
         #chat-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            min-width: 0;
-            background: var(--bg);
+            flex: 1; display: flex; flex-direction: column;
+            height: 100vh; overflow: hidden; min-width: 0; background: var(--bg);
         }
 
-        .chat-header {
-            height: 65px;
-            padding: 0 20px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 13px;
-            flex-shrink: 0;
-            background: var(--bg);
+        .chat-head {
+            height: 64px; padding: 0 18px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 12px; flex-shrink: 0; background: var(--bg2);
         }
-
         #btn-back {
-            display: none;
-            background: none;
-            border: none;
-            color: var(--text2);
-            cursor: pointer;
-            padding: 4px;
-            align-items: center;
-            justify-content: center;
+            display: none; background: none; border: none; color: var(--text2);
+            cursor: pointer; padding: 6px; border-radius: 8px; transition: color .2s;
         }
-
-        .ch-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 11px;
-            object-fit: cover;
-            background: var(--bg4);
-            display: none;
-        }
-
+        #btn-back:hover { color: var(--text); }
+        .ch-av { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; background: var(--bg4); display: none; }
         .ch-info { flex: 1; min-width: 0; }
+        .ch-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ch-status { font-size: 12px; color: var(--text3); }
+        .ch-status.on { color: var(--green); }
 
-        .ch-name {
-            font-family: 'Syne', sans-serif;
-            font-weight: 600;
-            font-size: 15px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .ch-status { font-size: 11px; color: var(--text3); margin-top: 1px; }
-        .ch-status.online { color: var(--green); }
-
-        #empty-state {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .empty-logo {
-            font-family: 'Syne', sans-serif;
-            font-weight: 800;
-            font-size: 72px;
-            color: var(--bg3);
-            letter-spacing: -4px;
-            line-height: 1;
-        }
-
-        .empty-hint { font-size: 13px; color: var(--text3); }
+        #empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+        .empty-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 48px; color: var(--bg3); letter-spacing: -3px; }
+        .empty-hint { font-size: 14px; color: var(--text3); }
 
         #messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 24px;
-            display: none;
-            flex-direction: column;
-            gap: 5px;
+            flex: 1; overflow-y: auto; overflow-x: hidden;
+            padding: 18px 14px; display: none; flex-direction: column; gap: 4px;
         }
-
         #messages::-webkit-scrollbar { width: 3px; }
-        #messages::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+        #messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
 
-        .msg-row { display: flex; flex-direction: column; }
-        .msg-row.sent  { align-items: flex-end; }
-        .msg-row.recv  { align-items: flex-start; }
+        .msg-row { display: flex; flex-direction: column; gap: 2px; }
+        .msg-row.sent { align-items: flex-end; }
+        .msg-row.recv { align-items: flex-start; }
 
         .bubble {
-            max-width: 70%;
-            padding: 10px 15px;
-            border-radius: 18px;
-            font-size: 14px;
-            line-height: 1.5;
-            word-break: break-word;
-            animation: popIn .15s ease;
+            max-width: 70%; padding: 10px 14px; border-radius: 18px;
+            font-size: 14.5px; line-height: 1.5; word-break: break-word;
+            position: relative; cursor: default;
+            animation: popIn .18s ease both;
         }
+        @keyframes popIn { from { opacity:0; transform:scale(.95) translateY(6px); } to { opacity:1; transform:none; } }
 
-        @keyframes popIn {
-            from { opacity: 0; transform: scale(.95) translateY(5px); }
-            to   { opacity: 1; transform: none; }
+        .msg-row.sent .bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 5px; }
+        .msg-row.recv .bubble { background: var(--bg3); color: var(--text); border-bottom-left-radius: 5px; }
+
+        .bubble.deleted { opacity: .45; font-style: italic; }
+        .bubble.edited::after { content: ' (ред.)'; font-size: 11px; opacity: .6; }
+
+        .bubble img { max-width: 240px; max-height: 180px; border-radius: 10px; display: block; margin-top: 6px; cursor: pointer; }
+        .file-link {
+            display: flex; align-items: center; gap: 8px; margin-top: 6px;
+            padding: 8px 12px; background: rgba(0,0,0,.22); border-radius: 10px;
+            text-decoration: none; color: inherit; font-size: 13px;
         }
+        .file-link:hover { background: rgba(0,0,0,.38); }
 
-        .msg-row.sent  .bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 5px; }
-        .msg-row.recv  .bubble { background: var(--bg3); color: var(--text); border-bottom-left-radius: 5px; }
+        .msg-time { font-size: 10px; color: var(--text3); padding: 0 4px; }
 
-        .msg-time { font-size: 10px; color: var(--text3); margin-top: 3px; padding: 0 4px; }
+        /* ─── CONTEXT MENU ────────────────────── */
+        #ctx-menu {
+            position: fixed; z-index: 5000; background: var(--bg3);
+            border: 1px solid var(--border2); border-radius: 13px;
+            padding: 6px; min-width: 165px;
+            box-shadow: 0 10px 40px rgba(0,0,0,.55); display: none;
+        }
+        .ctx-item {
+            padding: 9px 14px; border-radius: 8px; cursor: pointer;
+            font-size: 13px; display: flex; align-items: center; gap: 9px;
+            transition: background .15s; color: var(--text);
+        }
+        .ctx-item:hover { background: var(--bg4); }
+        .ctx-item.danger { color: var(--red); }
+        .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
 
+        /* ─── EDIT BAR ────────────────────────── */
+        #edit-bar {
+            padding: 8px 16px; background: var(--bg3); border-top: 1px solid var(--border);
+            display: none; align-items: center; gap: 8px; flex-shrink: 0;
+        }
+        .edit-label { flex: 1; font-size: 12px; color: var(--accent); font-weight: 500; }
+        .edit-cancel { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 20px; line-height: 1; transition: color .2s; }
+        .edit-cancel:hover { color: var(--text); }
+
+        /* ─── INPUT BOX ───────────────────────── */
         #input-box {
-            padding: 14px 20px;
-            border-top: 1px solid var(--border);
-            display: none;
-            gap: 10px;
-            align-items: center;
-            flex-shrink: 0;
+            padding: 12px 14px; display: none; align-items: flex-end; gap: 9px;
+            border-top: 1px solid var(--border); background: var(--bg2); flex-shrink: 0;
         }
+        .file-btn {
+            width: 40px; height: 40px; background: var(--bg3); border: 1px solid var(--border);
+            border-radius: 10px; color: var(--text2); font-size: 19px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .2s, color .2s; flex-shrink: 0;
+        }
+        .file-btn:hover { background: var(--bg4); color: var(--text); }
 
         #msg-input {
-            flex: 1;
-            background: var(--bg3);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 12px 16px;
-            border-radius: 14px;
-            font-size: 14px;
-            font-family: 'DM Sans', sans-serif;
-            outline: none;
-            transition: border-color .2s, box-shadow .2s;
-            min-width: 0;
+            flex: 1; background: var(--bg3); border: 1px solid var(--border);
+            color: var(--text); padding: 11px 14px; border-radius: 12px;
+            font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none;
+            transition: border-color .2s; resize: none; max-height: 120px;
+            min-height: 42px; line-height: 1.45;
         }
-
+        #msg-input:focus { border-color: var(--accent); }
         #msg-input::placeholder { color: var(--text3); }
-        #msg-input:focus { border-color: rgba(192,57,43,.5); box-shadow: 0 0 0 3px var(--accent-glow); }
 
         .btn-send {
-            background: var(--accent);
-            border: none;
-            color: #fff;
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: background .2s, transform .1s, box-shadow .2s;
+            width: 42px; height: 42px; background: var(--accent); border: none;
+            border-radius: 11px; color: #fff; font-size: 17px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .2s, transform .1s; flex-shrink: 0;
         }
+        .btn-send:hover { background: var(--accent2); }
+        .btn-send:active { transform: scale(.92); }
 
-        .btn-send:hover { background: var(--accent2); box-shadow: 0 4px 16px var(--accent-glow); }
-        .btn-send:active { transform: scale(.95); }
+        /* ─── MODAL ───────────────────────────── */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 8000;
+            background: rgba(0,0,0,.65); display: flex;
+            align-items: center; justify-content: center; padding: 20px;
+            animation: fadeIn .2s ease;
+        }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
-        /* ─── TOAST ──────────────────────────────────────────── */
+        .modal {
+            background: var(--bg2); border: 1px solid var(--border2);
+            border-radius: 22px; padding: 28px; width: 100%; max-width: 420px;
+            animation: slideUp .25s ease;
+        }
+        @keyframes slideUp { from { transform:translateY(18px); opacity:0; } to { transform:none; opacity:1; } }
+
+        .modal-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; margin-bottom: 22px; }
+
+        .modal-av-area { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .modal-av {
+            width: 78px; height: 78px; border-radius: 20px; object-fit: cover;
+            background: var(--bg4); cursor: pointer; transition: opacity .2s;
+            border: 2px solid var(--border2);
+        }
+        .modal-av:hover { opacity: .8; }
+        .modal-av-hint { font-size: 12px; color: var(--text3); }
+
+        .modal-btns { display: flex; gap: 10px; margin-top: 6px; }
+        .modal-btns .btn-primary, .modal-btns .btn-ghost { margin-top: 0; }
+
+        /* ─── TOAST ───────────────────────────── */
         #toast {
-            position: fixed;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%) translateY(16px);
-            background: var(--bg3);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 9px 20px;
-            border-radius: 50px;
-            font-size: 13px;
-            opacity: 0;
-            transition: opacity .25s, transform .25s;
-            pointer-events: none;
-            z-index: 9998;
-            white-space: nowrap;
+            position: fixed; bottom: 28px; left: 50%;
+            transform: translateX(-50%) translateY(14px);
+            background: var(--bg3); border: 1px solid var(--border2);
+            color: var(--text); padding: 11px 20px; border-radius: 12px;
+            font-size: 13px; z-index: 99999; opacity: 0;
+            transition: opacity .25s, transform .25s; pointer-events: none; white-space: nowrap;
         }
-
         #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* ─── MOBILE ─────────────────────────────────────────── */
-        #overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,.55);
-            z-index: 99;
-            backdrop-filter: blur(2px);
-        }
+        /* ─── OVERLAY ─────────────────────────── */
+        #overlay { display: none; position: fixed; inset: 0; z-index: 99; background: rgba(0,0,0,.5); }
+        #overlay.show { display: block; }
 
+        /* ─── MOBILE ──────────────────────────── */
         @media (max-width: 700px) {
-            #sidebar {
-                position: fixed;
-                top: 0; left: 0; bottom: 0;
-                transform: translateX(-100%);
-                transition: transform .3s cubic-bezier(.4,0,.2,1);
-                box-shadow: 12px 0 48px rgba(0,0,0,.6);
-            }
-
+            #sidebar { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; transform: translateX(-100%); }
             #sidebar.open { transform: translateX(0); }
-            #overlay.show { display: block; }
             #btn-back { display: flex !important; }
-
-            #messages { padding: 14px 16px; }
-            #input-box { padding: 10px 14px; }
-            .chat-header { padding: 0 14px; }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to   { opacity: 1; }
+            .bubble { max-width: 85%; }
         }
     </style>
 </head>
@@ -539,7 +323,7 @@
 <div id="auth-screen">
     <div class="auth-wrap">
         <div class="auth-logo">All<span>White</span></div>
-        <div class="auth-subtitle">Твой личный мессенджер</div>
+        <div class="auth-sub">Твой личный мессенджер</div>
         <div class="auth-card">
             <div class="field">
                 <label>Логин</label>
@@ -549,6 +333,10 @@
                 <label>Пароль</label>
                 <input id="inp-p" type="password" placeholder="••••••••" autocomplete="current-password">
             </div>
+            <label class="remember-row">
+                <input type="checkbox" id="remember-me">
+                <span>Запомнить меня</span>
+            </label>
             <button class="btn-primary" onclick="doLogin()">Войти</button>
             <button class="btn-ghost" onclick="doReg()">Зарегистрироваться</button>
         </div>
@@ -563,36 +351,37 @@
 
     <!-- SIDEBAR -->
     <div id="sidebar">
-        <div class="sidebar-header">
-            <img id="my-avatar" class="my-avatar" src="" alt="">
+        <div class="sidebar-head">
+            <img id="my-avatar" class="my-av" src="" alt="" onclick="openProfileModal()" title="Редактировать профиль">
             <div class="my-info">
-                <div class="my-name" id="my-name">—</div>
-                <div class="my-status"><span class="dot"></span> Online</div>
+                <div class="my-name" id="my-name" onclick="openProfileModal()">—</div>
+                <div class="my-online">В сети</div>
             </div>
-            <div class="aw-logo">AW</div>
+            <div class="aw-badge">AW</div>
         </div>
-
         <div class="sidebar-search">
             <input id="friend-inp" placeholder="Добавить друга..." onkeydown="if(event.key==='Enter') addFriend()">
             <button class="btn-add" onclick="addFriend()">+</button>
         </div>
-
         <div id="friends-list"></div>
     </div>
 
     <!-- CHAT -->
     <div id="chat-area">
-        <div class="chat-header">
+        <div class="chat-head">
             <button id="btn-back" onclick="openSidebar()">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"/>
-                </svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
-            <img id="ch-avatar" class="ch-avatar" src="" alt="">
+            <img id="ch-avatar" class="ch-av" src="" alt="">
             <div class="ch-info">
                 <div class="ch-name" id="ch-name">AllWhite</div>
                 <div class="ch-status" id="ch-status">Выберите диалог</div>
             </div>
+        </div>
+
+        <div id="edit-bar">
+            <span class="edit-label">✏️ Редактирование</span>
+            <button class="edit-cancel" onclick="cancelEdit()">✕</button>
         </div>
 
         <div id="empty-state">
@@ -603,12 +392,46 @@
         <div id="messages"></div>
 
         <div id="input-box">
-            <input id="msg-input" placeholder="Сообщение..." onkeydown="if(event.key==='Enter')sendMsg()" autocomplete="off">
+            <button class="file-btn" onclick="document.getElementById('file-input').click()" title="Прикрепить файл">📎</button>
+            <input type="file" id="file-input" style="display:none" accept="*/*" onchange="sendFile(this)">
+            <textarea id="msg-input" placeholder="Сообщение..." rows="1"></textarea>
             <button class="btn-send" onclick="sendMsg()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                    <path d="M2 21l21-9L2 3v7l15 2-15 2z"/>
-                </svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Context menu -->
+<div id="ctx-menu">
+    <div class="ctx-item" onclick="ctxCopy()">📋 Копировать</div>
+    <div class="ctx-item" id="ctx-edit-btn" onclick="ctxEdit()">✏️ Редактировать</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" onclick="ctxDelete()">🗑 Удалить</div>
+</div>
+
+<!-- Profile modal -->
+<div id="profile-modal" style="display:none">
+    <div class="modal-overlay" onclick="closeProfileModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-title">Мой профиль</div>
+            <div class="modal-av-area">
+                <img id="profile-av-preview" class="modal-av" src="" alt="" onclick="document.getElementById('av-input').click()" title="Сменить аватар">
+                <div class="modal-av-hint">Нажми на фото, чтобы сменить (до 2 МБ)</div>
+                <input type="file" id="av-input" accept="image/*" style="display:none" onchange="previewAvatar(this)">
+            </div>
+            <div class="field">
+                <label>Имя пользователя</label>
+                <input id="profile-username" value="" readonly style="opacity:.45; cursor:default">
+            </div>
+            <div class="field">
+                <label>О себе</label>
+                <textarea id="profile-bio" placeholder="Расскажи о себе..."></textarea>
+            </div>
+            <div class="modal-btns">
+                <button class="btn-ghost" onclick="closeProfileModal()">Отмена</button>
+                <button class="btn-primary" onclick="saveProfile()">Сохранить</button>
+            </div>
         </div>
     </div>
 </div>
@@ -616,173 +439,339 @@
 <div id="toast"></div>
 
 <script>
-    const socket = io();
-    let me = '', cur = '', history = [], friends = [];
+const socket = io();
+let me = '', cur = '', history = [], friends = [];
+let ctxMsgId = null, editingMsgId = null, pendingAvatarData = null;
 
-    /* ── utils ─────────────────────────────── */
-    function $(id) { return document.getElementById(id); }
+/* ── utils ─────────────────────────── */
+function $(id) { return document.getElementById(id); }
 
-    function toast(msg) {
-        const t = $('toast');
-        t.textContent = msg;
-        t.classList.add('show');
-        clearTimeout(t._t);
-        t._t = setTimeout(() => t.classList.remove('show'), 2600);
-    }
+function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 2800);
+}
 
-    function esc(s) {
-        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
+function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
-    function openSidebar() {
-        $('sidebar').classList.add('open');
-        $('overlay').classList.add('show');
-    }
+function avatarUrl(name) {
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=8b0000&color=fff`;
+}
 
-    function closeSidebar() {
-        $('sidebar').classList.remove('open');
-        $('overlay').classList.remove('show');
-    }
-
-    /* ── auth ──────────────────────────────── */
-    function doLogin() {
-        const u = $('inp-u').value.trim(), p = $('inp-p').value;
-        if (!u || !p) return toast('Заполни все поля');
+/* ── remember me ────────────────────── */
+function trySavedLogin() {
+    const u = localStorage.getItem('aw_u'), p = localStorage.getItem('aw_p');
+    if (u && p) {
+        $('inp-u').value = u; $('inp-p').value = p; $('remember-me').checked = true;
         socket.emit('login', { username: u, password: p });
     }
+}
 
-    function doReg() {
-        const u = $('inp-u').value.trim(), p = $('inp-p').value;
-        if (!u || !p) return toast('Заполни все поля');
-        socket.emit('register', { username: u, password: p });
+/* ── auth ───────────────────────────── */
+function doLogin() {
+    const u = $('inp-u').value.trim(), p = $('inp-p').value;
+    if (!u || !p) return toast('Заполни все поля');
+    if ($('remember-me').checked) { localStorage.setItem('aw_u', u); localStorage.setItem('aw_p', p); }
+    else { localStorage.removeItem('aw_u'); localStorage.removeItem('aw_p'); }
+    socket.emit('login', { username: u, password: p });
+}
+
+function doReg() {
+    const u = $('inp-u').value.trim(), p = $('inp-p').value;
+    if (!u || !p) return toast('Заполни все поля');
+    socket.emit('register', { username: u, password: p });
+}
+
+$('inp-p').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+socket.on('login_success', d => {
+    me = d.username; history = d.history || []; friends = d.friends || [];
+    $('auth-screen').style.display = 'none';
+    $('my-name').textContent = me;
+    $('my-avatar').src = d.avatar || avatarUrl(me);
+    renderFriends();
+    if (window.innerWidth <= 700) openSidebar();
+});
+
+socket.on('register_success', () => toast('Аккаунт создан — войди!'));
+socket.on('auth_error', e => { toast(e || 'Ошибка входа'); localStorage.removeItem('aw_u'); localStorage.removeItem('aw_p'); });
+
+/* ── profile ────────────────────────── */
+function openProfileModal() {
+    $('profile-av-preview').src = $('my-avatar').src;
+    $('profile-username').value = me;
+    // find own bio if stored
+    const selfFriend = friends.find(f => f.name === me);
+    $('profile-bio').value = selfFriend?.bio || '';
+    pendingAvatarData = null;
+    $('profile-modal').style.display = 'block';
+}
+
+function closeProfileModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    $('profile-modal').style.display = 'none';
+    pendingAvatarData = null;
+}
+
+function previewAvatar(input) {
+    const file = input.files[0]; if (!file) return;
+    if (file.size > 2 * 1024 * 1024) return toast('Макс. 2 МБ для фото');
+    const reader = new FileReader();
+    reader.onload = ev => { pendingAvatarData = ev.target.result; $('profile-av-preview').src = pendingAvatarData; };
+    reader.readAsDataURL(file);
+}
+
+function saveProfile() {
+    socket.emit('update_profile', { bio: $('profile-bio').value.trim(), avatar: pendingAvatarData || null });
+    if (pendingAvatarData) $('my-avatar').src = pendingAvatarData;
+    $('profile-modal').style.display = 'none';
+    pendingAvatarData = null;
+    toast('Профиль сохранён!');
+}
+
+socket.on('profile_updated', d => {
+    const f = friends.find(x => x.name === d.username);
+    if (f) { if (d.avatar) f.avatar = d.avatar; if (d.bio !== undefined) f.bio = d.bio; renderFriends(); }
+    if (d.username === me && d.avatar) $('my-avatar').src = d.avatar;
+});
+
+/* ── sidebar ────────────────────────── */
+function openSidebar() { $('sidebar').classList.add('open'); $('overlay').classList.add('show'); }
+function closeSidebar() { $('sidebar').classList.remove('open'); $('overlay').classList.remove('show'); }
+
+/* ── friends ────────────────────────── */
+function addFriend() {
+    const v = $('friend-inp').value.trim();
+    if (v) { socket.emit('add_friend', v); $('friend-inp').value = ''; }
+}
+
+socket.on('friend_added', f => {
+    if (!friends.find(x => x.name === f.name)) friends.push(f);
+    renderFriends(); toast(`${f.name} добавлен!`);
+});
+
+socket.on('friend_updated', d => {
+    const f = friends.find(x => x.name === d.name);
+    if (f) { f.online = d.online; renderFriends(); }
+    if (cur === d.name) {
+        $('ch-status').textContent = d.online ? 'В сети' : 'Не в сети';
+        $('ch-status').className = 'ch-status' + (d.online ? ' on' : '');
     }
+});
 
-    socket.on('login_success', d => {
-        me = d.username;
-        history = d.history || [];
-        friends = d.friends || [];
-        $('auth-screen').style.display = 'none';
-        $('my-name').textContent = me;
-        $('my-avatar').src = d.avatar;
-        renderFriends();
-        if (window.innerWidth <= 700) openSidebar();
+function lastMsgText(name) {
+    const msgs = history.filter(m => (m.from===me&&m.to===name)||(m.from===name&&m.to===me));
+    if (!msgs.length) return '';
+    const l = msgs[msgs.length - 1];
+    if (l.deleted) return (l.from===me?'Вы: ':'') + 'Сообщение удалено';
+    const prefix = l.from === me ? 'Вы: ' : '';
+    return prefix + (l.text || (l.fileData ? '📎 Файл' : ''));
+}
+
+function renderFriends() {
+    const el = $('friends-list'); el.innerHTML = '';
+    friends.forEach(f => {
+        const d = document.createElement('div');
+        d.className = 'f-item' + (cur===f.name?' active':'');
+        d.dataset.name = f.name;
+        const av = f.avatar || avatarUrl(f.name);
+        const sub = lastMsgText(f.name) || (f.online ? 'В сети' : 'Не в сети');
+        const unread = history.filter(m => m.from===f.name && m.to===me && !m.read).length;
+        d.innerHTML = `
+            <div class="f-av-wrap">
+                <img class="f-av" src="${av}" alt="">
+                <span class="f-dot${f.online?' on':''}"></span>
+            </div>
+            <div class="f-meta">
+                <div class="f-name">${esc(f.name)}</div>
+                <div class="f-sub">${esc(sub)}</div>
+            </div>
+            ${unread > 0 ? `<div class="f-badge">${unread}</div>` : ''}`;
+        d.onclick = () => openChat(f);
+        el.appendChild(d);
     });
+}
 
-    socket.on('register_success', () => toast('Аккаунт создан — войди!'));
-    socket.on('auth_error', e => toast(e));
+/* ── chat open ──────────────────────── */
+function openChat(f) {
+    cur = f.name;
+    $('ch-name').textContent = f.name;
+    $('ch-status').textContent = f.online ? 'В сети' : 'Не в сети';
+    $('ch-status').className = 'ch-status' + (f.online ? ' on' : '');
+    const chAv = $('ch-avatar');
+    chAv.src = f.avatar || avatarUrl(f.name);
+    chAv.style.display = 'block';
+    $('empty-state').style.display = 'none';
+    $('messages').style.display = 'flex';
+    $('input-box').style.display = 'flex';
+    document.querySelectorAll('.f-item').forEach(el => el.classList.toggle('active', el.dataset.name===f.name));
+    renderMessages();
+    if (window.innerWidth <= 700) closeSidebar();
+    $('msg-input').focus();
+}
 
-    /* ── friends ───────────────────────────── */
-    function addFriend() {
-        const v = $('friend-inp').value.trim();
-        if (v) { socket.emit('add_friend', v); $('friend-inp').value = ''; }
+/* ── render messages ────────────────── */
+function renderMessages() {
+    const el = $('messages');
+    const msgs = history.filter(m => (m.from===me&&m.to===cur)||(m.from===cur&&m.to===me));
+    el.innerHTML = '';
+    if (!msgs.length) {
+        el.innerHTML = `<div style="margin:auto;text-align:center;color:var(--text3);font-size:13px;">Нет сообщений — напишите первым!</div>`;
+        return;
     }
+    msgs.forEach(m => {
+        const isSent = m.from === me;
+        const row = document.createElement('div');
+        row.className = 'msg-row ' + (isSent ? 'sent' : 'recv');
+        row.dataset.id = m.id;
 
-    socket.on('friend_added', f => {
-        friends.push(f);
-        renderFriends();
-        toast(`${f.name} добавлен!`);
-    });
+        const bubble = document.createElement('div');
+        let cls = 'bubble';
+        if (m.deleted) cls += ' deleted';
+        else if (m.edited) cls += ' edited';
+        bubble.className = cls;
 
-    socket.on('friend_updated', d => {
-        const f = friends.find(x => x.name === d.name);
-        if (f) { f.online = d.online; renderFriends(); }
-        if (cur === d.name) {
-            const st = $('ch-status');
-            st.textContent = d.online ? 'В сети' : 'Не в сети';
-            st.className = 'ch-status' + (d.online ? ' online' : '');
+        if (m.deleted) {
+            bubble.textContent = 'Сообщение удалено';
+        } else if (m.type === 'image' && m.fileData) {
+            if (m.text) { const t = document.createElement('div'); t.textContent = m.text; bubble.appendChild(t); }
+            const img = document.createElement('img');
+            img.src = m.fileData; img.alt = m.fileName || 'img';
+            img.onclick = () => window.open(m.fileData, '_blank');
+            bubble.appendChild(img);
+        } else if (m.type === 'file' && m.fileData) {
+            if (m.text) { const t = document.createElement('div'); t.textContent = m.text; bubble.appendChild(t); }
+            const a = document.createElement('a');
+            a.className = 'file-link'; a.href = m.fileData; a.download = m.fileName || 'file';
+            a.innerHTML = `📄 <span>${esc(m.fileName || 'Файл')}</span>`;
+            bubble.appendChild(a);
+        } else {
+            bubble.textContent = m.text || '';
         }
-    });
 
-    function lastMsg(name) {
-        const msgs = history.filter(m =>
-            (m.from === me && m.to === name) || (m.from === name && m.to === me));
-        if (!msgs.length) return '';
-        const l = msgs[msgs.length - 1];
-        return (l.from === me ? 'Вы: ' : '') + (l.text || '[файл]');
-    }
-
-    function renderFriends() {
-        const el = $('friends-list');
-        el.innerHTML = '';
-        friends.forEach(f => {
-            const d = document.createElement('div');
-            d.className = 'friend-item' + (cur === f.name ? ' active' : '');
-            d.dataset.name = f.name;
-            const av = f.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.name)}&background=8b0000&color=fff`;
-            const sub = lastMsg(f.name) || (f.online ? 'В сети' : 'Не в сети');
-            d.innerHTML = `
-                <div class="f-avatar-wrap">
-                    <img class="f-avatar" src="${av}" alt="">
-                    <span class="f-online${f.online ? ' on' : ''}"></span>
-                </div>
-                <div class="f-info">
-                    <div class="f-name">${esc(f.name)}</div>
-                    <div class="f-sub">${esc(sub)}</div>
-                </div>`;
-            d.onclick = () => openChat(f);
-            el.appendChild(d);
-        });
-    }
-
-    /* ── chat ──────────────────────────────── */
-    function openChat(f) {
-        cur = f.name;
-
-        $('ch-name').textContent = f.name;
-        const st = $('ch-status');
-        st.textContent = f.online ? 'В сети' : 'Не в сети';
-        st.className = 'ch-status' + (f.online ? ' online' : '');
-
-        const av = $('ch-avatar');
-        av.src = f.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.name)}&background=8b0000&color=fff`;
-        av.style.display = 'block';
-
-        $('empty-state').style.display = 'none';
-        $('messages').style.display = 'flex';
-        $('input-box').style.display = 'flex';
-
-        document.querySelectorAll('.friend-item').forEach(el =>
-            el.classList.toggle('active', el.dataset.name === f.name));
-
-        renderMessages();
-        if (window.innerWidth <= 700) closeSidebar();
-        $('msg-input').focus();
-    }
-
-    function renderMessages() {
-        const el = $('messages');
-        const msgs = history.filter(m =>
-            (m.from === me && m.to === cur) || (m.from === cur && m.to === me));
-        el.innerHTML = '';
-
-        if (!msgs.length) {
-            el.innerHTML = `<div style="margin:auto;text-align:center;color:var(--text3);font-size:13px;">Нет сообщений — напишите первым!</div>`;
-            return;
+        // context menu for own non-deleted messages
+        if (isSent && !m.deleted) {
+            bubble.style.cursor = 'pointer';
+            bubble.addEventListener('contextmenu', ev => { ev.preventDefault(); showCtx(ev, m); });
+            // long press for mobile
+            let lp;
+            bubble.addEventListener('touchstart', ev => {
+                lp = setTimeout(() => { const t = ev.touches[0]; showCtx({ clientX: t.clientX, clientY: t.clientY }, m); }, 500);
+            }, { passive: true });
+            bubble.addEventListener('touchend', () => clearTimeout(lp));
+            bubble.addEventListener('touchmove', () => clearTimeout(lp));
         }
 
-        msgs.forEach(m => {
-            const row = document.createElement('div');
-            row.className = 'msg-row ' + (m.from === me ? 'sent' : 'recv');
-            row.innerHTML = `<div class="bubble">${esc(m.text || '')}</div><div class="msg-time">${m.time || ''}</div>`;
-            el.appendChild(row);
-        });
+        const timeEl = document.createElement('div');
+        timeEl.className = 'msg-time';
+        timeEl.textContent = m.time || '';
 
-        el.scrollTop = el.scrollHeight;
-    }
-
-    function sendMsg() {
-        const inp = $('msg-input');
-        const text = inp.value.trim();
-        if (!text || !cur) return;
-        socket.emit('private_message', { to: cur, text, type: 'text' });
-        inp.value = '';
-    }
-
-    socket.on('private_message', msg => {
-        history.push(msg);
-        if (cur === msg.from || cur === msg.to) renderMessages();
-        renderFriends();
+        row.appendChild(bubble);
+        row.appendChild(timeEl);
+        el.appendChild(row);
     });
+
+    el.scrollTop = el.scrollHeight;
+}
+
+/* ── context menu ───────────────────── */
+function showCtx(ev, msg) {
+    ctxMsgId = msg.id;
+    const menu = $('ctx-menu');
+    // hide edit option for file messages
+    $('ctx-edit-btn').style.display = (msg.type === 'text' || !msg.type) ? 'flex' : 'none';
+    menu.style.display = 'block';
+    const x = Math.min(ev.clientX, window.innerWidth - 180);
+    const y = Math.min(ev.clientY, window.innerHeight - 130);
+    menu.style.left = x + 'px'; menu.style.top = y + 'px';
+}
+
+document.addEventListener('click', () => $('ctx-menu').style.display = 'none');
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('ctx-menu').style.display = 'none'; cancelEdit(); } });
+
+function ctxCopy() {
+    const msg = history.find(m => m.id === ctxMsgId);
+    if (msg?.text) navigator.clipboard.writeText(msg.text).then(() => toast('Скопировано!'));
+}
+
+function ctxEdit() {
+    const msg = history.find(m => m.id === ctxMsgId);
+    if (!msg) return;
+    editingMsgId = msg.id;
+    $('msg-input').value = msg.text || '';
+    $('msg-input').focus();
+    $('edit-bar').style.display = 'flex';
+    $('msg-input').style.height = 'auto';
+    $('msg-input').style.height = Math.min($('msg-input').scrollHeight, 120) + 'px';
+}
+
+function cancelEdit() {
+    editingMsgId = null;
+    $('msg-input').value = '';
+    $('msg-input').style.height = 'auto';
+    $('edit-bar').style.display = 'none';
+}
+
+function ctxDelete() {
+    if (!ctxMsgId) return;
+    socket.emit('delete_message', { id: ctxMsgId, to: cur });
+}
+
+socket.on('message_deleted', ({ id }) => {
+    const m = history.find(x => x.id === id);
+    if (m) { m.deleted = true; renderMessages(); renderFriends(); }
+});
+
+socket.on('message_edited', ({ id, text }) => {
+    const m = history.find(x => x.id === id);
+    if (m) { m.text = text; m.edited = true; renderMessages(); renderFriends(); }
+});
+
+/* ── send ───────────────────────────── */
+function sendMsg() {
+    const inp = $('msg-input');
+    const text = inp.value.trim();
+    if (!text || !cur) return;
+
+    if (editingMsgId) {
+        socket.emit('edit_message', { id: editingMsgId, text, to: cur });
+        cancelEdit(); return;
+    }
+    socket.emit('private_message', { to: cur, text, type: 'text' });
+    inp.value = ''; inp.style.height = 'auto';
+}
+
+$('msg-input').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); } });
+$('msg-input').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+socket.on('private_message', msg => {
+    history.push(msg);
+    if (cur === msg.from || cur === msg.to) renderMessages();
+    renderFriends();
+});
+
+/* ── file send ──────────────────────── */
+function sendFile(input) {
+    const file = input.files[0]; if (!file || !cur) return;
+    if (file.size > 10 * 1024 * 1024) return toast('Макс. 10 МБ для файла');
+    const reader = new FileReader();
+    reader.onload = ev => {
+        const isImg = file.type.startsWith('image/');
+        socket.emit('private_message', {
+            to: cur, text: '', type: isImg ? 'image' : 'file',
+            fileData: ev.target.result, fileName: file.name
+        });
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+}
+
+/* ── init ───────────────────────────── */
+window.addEventListener('load', trySavedLogin);
 </script>
 </body>
 </html>
